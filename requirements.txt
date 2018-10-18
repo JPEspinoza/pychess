@@ -1,0 +1,5 @@
+keras
+tensorflow
+PyQt5 <-> tkinter
+fontawesome?
+qtawesome??

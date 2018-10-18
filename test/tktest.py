@@ -1,38 +1,22 @@
-import tkinter
-import fontawesome
+from tkinter import Tk, Label, Button
 
-master = tkinter.Tk()
+class MyFirstGUI:
+    def __init__(self, master):
+        self.master = master
+        master.title("A simple GUI")
 
-size = 800
-divisions = 8
+        self.label = Label(master, text="This is our first GUI!")
+        self.label.pack()
 
-w = tkinter.Canvas(master, width=size, height=size)
-w.pack()
+        self.greet_button = Button(master, text="Greet", command=self.greet)
+        self.greet_button.pack()
 
-for i in range(divisions):
-    w.create_line(0, (size / divisions) * i, size, (size / divisions) * i)
-    w.create_line((size/divisions) * i, 0, (size/divisions)*i, size )
+        self.close_button = Button(master, text="Close", command=master.quit)
+        self.close_button.pack()
 
-def click(event):
-    #absolute position
-    #print("Cursor at X: " + str(event.x) + ", Y: " + str(event.y))
+    def greet(self):
+        print("Greetings!")
 
-    #column
-    for i in range(divisions):
-        if(event.x > (size/divisions) * i and event.x < (size/divisions) * (i + 1)):
-            #print("Column: " + str(i))
-            column = i
-
-    #row
-    for i in range(divisions):
-        if(event.y > (size/divisions) * i and event.y < (size/divisions) * (i+1)):
-            #print("Row: " + str(i))
-            row = i
-
-    return(column, row)
-
-
-w.bind("<Button-1>", click)
-
-
-tkinter.mainloop()
+root = Tk()
+my_gui = MyFirstGUI(root)
+root.mainloop()
