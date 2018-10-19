@@ -1,5 +1,11 @@
+#(probably) core part of the project
 keras
 tensorflow
-PyQt5 <-> tkinter
-fontawesome?
-qtawesome??
+PyQt5
+
+#for dev
+pylint
+
+#experimental
+fontawesome
+qtawesome
