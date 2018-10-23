@@ -1,11 +1,3 @@
-#(probably) core part of the project
+pylint
 keras
 tensorflow
-PyQt5
-
-#for dev
-pylint
-
-#experimental
-fontawesome
-qtawesome
