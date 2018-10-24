@@ -1,6 +1,0 @@
-#test
-keras
-tensorflow
-
-#for dev
-pylint

@@ -7,9 +7,12 @@ class Type:
             self.attacks = movements
 
 class Types(Enum):
+    #can move one column, attack one column and one row
     pawn = Type([[0,1]], [[1,1], [-1,1]])
+    #can move in any direction
+    king = Type([[True, True]])
 
-class Piece:
+class Piece():
     def __init__(self, column, row, type):
         self.column = column
         self.row = row
