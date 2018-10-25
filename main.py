@@ -11,7 +11,7 @@ partition = size / divisions
 canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
 canvas.pack()
 
-gameList = []
+pieceList = []
 tileList = []
 ###
 
@@ -19,26 +19,23 @@ tileList = []
 class Type:
     def __init__(self, sprite, movements, attacks = None):
         self.movements = movements
+        self.attacks = attacks
         if (attacks == None):
             self.attacks = movements
         self.sprite = sprite
 
-class Types(Enum):
-    #can move one column, attack one column and one row
-    pawnSprite = tkinter.PhotoImage(file="sprites/pawn.png")
-    pawnMoves = [[0,1]]
-    pawnAttacks = [[1,1], [-1,1]]
-    pawn = Type(pawnSprite, pawnMoves, pawnAttacks)
-
-class Piece():
+class Piece(Type):
     def __init__(self, column, row, type):
         self.column = column
         self.row = row
-        self.type = type
         self.tkobject = None
+        self.sprite = type.sprite
+        self.movements = type.movements
+        self.attacks = type.attacks
     
     def draw(self):
-        pass
+        canvas.delete(self.tkobject)
+        self.tkobject = canvas.create_image(partition * self.column, partition * self.row, self.sprite)
 ###
 
 ###create the board
@@ -71,17 +68,30 @@ def click(event):
     ###
 
     ###draw everything else
-    for gameObject in gameList:
-        gameObject.draw()
+    #draw pieces
+    for piece in pieceList:
+        piece.draw()
 
     #mark clicked tile
     for tile in tileList:
         canvas.delete(tile)
+    
     tileList.append(canvas.create_rectangle(column * partition, row*partition, (column+1)*partition, (row+1)* partition, fill="red2"))
+
+    #check if there is a piece on the tile
+    for piece in pieceList:
+        if piece.column == column and piece.row == row:
+            #draw possible movements
+            pass
 ###
 
+pawnSprite = tkinter.PhotoImage(file="sprites/pawn.png")
+pawnMoves = [[0,1]]
+pawnAttacks = [[1,1], [-1,1]]
+pawn = Type(pawnSprite, pawnMoves, pawnAttacks)
+
 #declare pieces like this
-gameList.append(Piece(0,7, Types.pawn))
+pieceList.append(Piece(0,7, pawn))
 
 #init
 drawBoard()
