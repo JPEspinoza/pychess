@@ -1,12 +1,13 @@
+import tkinter
+from PIL import Image, ImageTk
 
-class Type:
-    def __init__(self, sprite, movements, attacks = None):
-        self.movements = movements
-        self.attacks = attacks
-        if(self.attacks == None):
-            self.attacks = movements
-        self.sprite = sprite
+master = tkinter.Tk()
 
-pawnMoves = [[0,1]]
-pawnAttacks = [[1,1], [-1,1]]
-pawn = Type("test", pawnMoves, pawnAttacks)
+img = Image.open("sprites/pawn.png")
+tatras = ImageTk.PhotoImage(img)
+
+canvas = tkinter.Canvas(master=master, width=img.size[0]+20, height=img.size[1]+20)
+canvas.pack()
+canvas.create_image(img.size[0]/2+10,img.size[1]/2+10,image=tatras)
+
+master.mainloop()

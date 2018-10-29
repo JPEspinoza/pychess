@@ -1,5 +1,6 @@
 from enum import Enum
 import tkinter
+from PIL import Image, ImageTk
 
 ###constants
 master = tkinter.Tk()
@@ -24,7 +25,7 @@ class Type:
             self.attacks = movements
         self.sprite = sprite
 
-class Piece(Type):
+class Piece():
     def __init__(self, column, row, type):
         self.column = column
         self.row = row
@@ -35,7 +36,9 @@ class Piece(Type):
     
     def draw(self):
         canvas.delete(self.tkobject)
-        self.tkobject = canvas.create_image(partition * self.column, partition * self.row, self.sprite)
+        x = partition * self.column + partition / 2
+        y = partition * self.row + partition/ 2
+        self.tkobject = canvas.create_image(x, y, image=self.sprite)
 ###
 
 ###create the board
@@ -68,15 +71,15 @@ def click(event):
     ###
 
     ###draw everything else
-    #draw pieces
-    for piece in pieceList:
-        piece.draw()
-
     #mark clicked tile
     for tile in tileList:
         canvas.delete(tile)
     
     tileList.append(canvas.create_rectangle(column * partition, row*partition, (column+1)*partition, (row+1)* partition, fill="red2"))
+
+    #draw pieces
+    for piece in pieceList:
+        piece.draw()
 
     #check if there is a piece on the tile
     for piece in pieceList:
@@ -85,7 +88,8 @@ def click(event):
             pass
 ###
 
-pawnSprite = tkinter.PhotoImage(file="sprites/pawn.png")
+#data of the pawn
+pawnSprite = ImageTk.PhotoImage(Image.open("sprites/pawn.png").thumbnail((partition,partition)))
 pawnMoves = [[0,1]]
 pawnAttacks = [[1,1], [-1,1]]
 pawn = Type(pawnSprite, pawnMoves, pawnAttacks)
