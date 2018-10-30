@@ -1,6 +1,6 @@
 from enum import Enum
 import tkinter
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 
 ###constants
 master = tkinter.Tk()
@@ -89,13 +89,17 @@ def click(event):
 ###
 
 #data of the pawn
-pawnSprite = ImageTk.PhotoImage(Image.open("sprites/pawn.png").thumbnail((partition,partition)))
+temp = Image.open("sprites/pawn.png")
+temp.thumbnail((partition,partition))
+
+pawnSprite = ImageTk.PhotoImage(temp)
+
 pawnMoves = [[0,1]]
 pawnAttacks = [[1,1], [-1,1]]
 pawn = Type(pawnSprite, pawnMoves, pawnAttacks)
 
 #declare pieces like this
-pieceList.append(Piece(0,7, pawn))
+pieceList.append(Piece(0,6, pawn))
 
 #init
 drawBoard()
