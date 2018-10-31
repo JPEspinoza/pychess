@@ -17,28 +17,57 @@ tileList = []
 ###
 
 ###classes
-class Type:
-    def __init__(self, sprite, movements, attacks = None):
-        self.movements = movements
-        self.attacks = attacks
-        if (attacks == None):
-            self.attacks = movements
-        self.sprite = sprite
-
 class Piece():
-    def __init__(self, column, row, type):
+    def __init__(self, column, row, sprite, movements, attacks):
         self.column = column
         self.row = row
-        self.tkobject = None
-        self.sprite = type.sprite
-        self.movements = type.movements
-        self.attacks = type.attacks
+        self.sprite = sprite
+        self.movements = movements
+        self.attacks = attacks
+        self.tkobject = None #placeholder for the drawn piece
+        self.tiles = [] #placeholder for the drawn
     
-    def draw(self):
+    def draw(self): #executed every cycle
+        #draw self
         canvas.delete(self.tkobject)
         x = partition * self.column + partition / 2
         y = partition * self.row + partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
+
+        #delete the tiles if the piece wasn't clicked
+        for tile in self.tiles:
+            canvas.delete(tile)
+    
+    def click(self): #executed only on click
+        pass
+
+class Pawn(Piece):
+    def __init__(self, column, row):
+        #data of the pawn
+        temp = Image.open("sprites/pawn.png")
+        temp.thumbnail((partition,partition))
+
+        pawnSprite = ImageTk.PhotoImage(temp)
+
+        pawnMoves = [[0,1]]
+        pawnAttacks = [[1,1], [-1,1]]
+
+        Piece.__init__(self, column, row, pawnSprite, pawnMoves, pawnAttacks)
+
+class Rook(Piece): #torre
+    pass
+
+class Knight(Piece): #caballo
+    pass
+
+class Bishop(Piece): #alfil
+    pass
+
+class King(Piece):
+    pass
+
+class Queen(Piece):
+    pass
 ###
 
 ###create the board
@@ -84,22 +113,12 @@ def click(event):
     #check if there is a piece on the tile
     for piece in pieceList:
         if piece.column == column and piece.row == row:
-            #draw possible movements
+            piece.click()
             pass
 ###
 
-#data of the pawn
-temp = Image.open("sprites/pawn.png")
-temp.thumbnail((partition,partition))
-
-pawnSprite = ImageTk.PhotoImage(temp)
-
-pawnMoves = [[0,1]]
-pawnAttacks = [[1,1], [-1,1]]
-pawn = Type(pawnSprite, pawnMoves, pawnAttacks)
-
 #declare pieces like this
-pieceList.append(Piece(0,6, pawn))
+pieceList.append(Pawn(0,6))
 
 #init
 drawBoard()
