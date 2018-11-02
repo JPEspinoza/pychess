@@ -5,72 +5,75 @@ from PIL import Image, ImageTk, ImageOps
 ###constants
 master = tkinter.Tk()
 
-size = 500
+size = 720
 divisions = 8
 partition = size / divisions
 
 canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
 canvas.pack()
 
-pieceList = []
-tileList = []
-###
+pieceList = [] #list of pieces
+selectedPiece = None #piece that drew last
+tileList = [] #list of tiles the last piece drew
+table = [[],[]] #columns, row
 
 ###classes
-class Piece():
-    def __init__(self, column, row, sprite, movements, attacks):
+class Piece:
+    def __init__(self, column, row, sprite, side):
         self.column = column
         self.row = row
         self.sprite = sprite
-        self.movements = movements
-        self.attacks = attacks
+        self.side = side
         self.tkobject = None #placeholder for the drawn piece
-        self.tiles = [] #placeholder for the drawn
     
     def draw(self): #executed every cycle
-        #draw self
+        #draw itself
         canvas.delete(self.tkobject)
         x = partition * self.column + partition / 2
         y = partition * self.row + partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
 
-        #delete the tiles if the piece wasn't clicked
-        for tile in self.tiles:
-            canvas.delete(tile)
+class Pawn(Piece):
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, loadSprite("pawn", side), side) #start the piece
     
-    def click(self): #executed only on click
+    def click(self):
+        #draw movements
         pass
 
-class Pawn(Piece):
-    def __init__(self, column, row):
-        #data of the pawn
-        temp = Image.open("sprites/pawn.png")
-        temp.thumbnail((partition,partition))
-
-        pawnSprite = ImageTk.PhotoImage(temp)
-
-        pawnMoves = [[0,1]]
-        pawnAttacks = [[1,1], [-1,1]]
-
-        Piece.__init__(self, column, row, pawnSprite, pawnMoves, pawnAttacks)
-
 class Rook(Piece): #torre
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, loadSprite("rook", side), side)
     pass
 
 class Knight(Piece): #caballo
-    pass
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, loadSprite("knight", side), side)    
 
 class Bishop(Piece): #alfil
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, loadSprite("bishop", side), side)    
     pass
 
 class King(Piece):
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, loadSprite("king", side), side)  
     pass
 
 class Queen(Piece):
-    pass
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, loadSprite("queen", side), side)
+    
+    def click(self):
+        pass
 ###
+###functions
+def loadSprite(piece, side):
+    temp = Image.open("sprites/" +piece + "-" + side + ".png")
+    temp.thumbnail((partition-10,partition- 10))
+    sprite = ImageTk.PhotoImage(temp)
+    return sprite
 
-###create the board
 def drawBoard():
     #draw the lines
     for i in range(divisions):
@@ -82,11 +85,9 @@ def drawBoard():
         for column in range(0, divisions, 2):
             canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
             canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
-###
 
-###core game logic
-def click(event):
-    ###check the click position
+def click(event): #core game logic
+    #check the click position
     column, row = -1, -1
     for i in range(divisions): #column
         if(event.x > partition * i and event.x < partition * (i + 1)):
@@ -96,33 +97,42 @@ def click(event):
         if(event.y > partition * i and event.y < partition * (i+1)):
             #print("row: " + str(i))
             row = i
-    print("Column: " + str(column) + " - row: " + str(row))
-    ###
+    #print("Column: " + str(column) + " - row: " + str(row)) #debug
 
-    ###draw everything else
-    #mark clicked tile
-    for tile in tileList:
-        canvas.delete(tile)
-    
-    tileList.append(canvas.create_rectangle(column * partition, row*partition, (column+1)*partition, (row+1)* partition, fill="red2"))
+    #check if a piece was clicked already
+    #if there was, then compare against possible movements
+    global selectedPiece
+    if(selectedPiece != None): #if there is a piece selected then check for marked tiles
+        for tile in tileList:
+            print(tile)
+        return
 
-    #draw pieces
-    for piece in pieceList:
-        piece.draw()
-
-    #check if there is a piece on the tile
+    #if no piece was clicked then check against pieces
     for piece in pieceList:
         if piece.column == column and piece.row == row:
             piece.click()
-            pass
+            selectedPiece = piece
 ###
 
-#declare pieces like this
-pieceList.append(Pawn(0,6))
+###init
+#create pieces
+pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
+for i in range(0,8):
+    #add pawns
+    pieceList.append(Pawn(i,6, "black"))
+    pieceList.append(Pawn(i,1, "white"))
 
-#init
+    pieceList.append(pieceOrder[i](i, 7, "black"))
+    pieceList.append(pieceOrder[i](i, 0, "white"))
+
 drawBoard()
 canvas.bind("<Button-1>", click)
+
+#draw all pieces
+for piece in pieceList:
+    piece.draw()
+
+#lets get this started!
 tkinter.mainloop()
 
 #standard: Columns, Rows
