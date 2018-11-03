@@ -2,7 +2,7 @@ from enum import Enum
 import tkinter
 from PIL import Image, ImageTk, ImageOps
 
-###constants
+###variables
 master = tkinter.Tk()
 
 size = 720
@@ -12,10 +12,15 @@ partition = size / divisions
 canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
 canvas.pack()
 
-pieceList = [] #list of pieces
+#list of pieces of each team
+whiteList = []
+blackList = []
+
 selectedPiece = None #piece that drew last
 tileList = [] #list of tiles the last piece drew
 table = [[],[]] #columns, row
+
+turn = "white"
 
 ###classes
 class Piece:
@@ -24,7 +29,7 @@ class Piece:
         self.row = row
         self.sprite = sprite
         self.side = side
-        self.tkobject = None #piece itself
+        self.tkobject = None #drawing of the piece itself
     
     def draw(self): #executed every cycle
         #draw itself
@@ -33,16 +38,21 @@ class Piece:
         y = partition * self.row + partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
 
-        #if the piece was clicked and ignored the next cycle delete the drawn tiles
-
+    def move(self, column, row):
+        self.column = column
+        self.row = row
+        self.draw()
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, loadSprite("pawn", side), side) #start the piece
+        if(side == "black"):
+            self.direction = -1
+        else: self.direction = 1
     
     def click(self):
-        #draw movements
-        pass
+        markTile(self.column, self.row, "red")
+        markTile(self.column, self.row+self.direction, "yellow")
 
 class Rook(Piece): #torre
     def __init__(self, column, row, side):
@@ -78,12 +88,22 @@ class Queen(Piece):
     
     def click(self):
         pass
-###
+
+class Tile:
+    def __init__(self, column, row, tkobject):
+        self.column = column
+        self.row = row
+        self.tkobject = tkobject
+
 ###functions
 def markTile(column, row, color): #mark a tile as possible to attack
     x = column * partition
     y = row * partition
-    tileList.append(x, y, x+partition, y+partition, fill=color)
+
+    tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=color)
+    tile = Tile(column, row, tkobject)
+
+    tileList.append(tile)
     pass
 
 def loadSprite(piece, side):
@@ -92,62 +112,88 @@ def loadSprite(piece, side):
     sprite = ImageTk.PhotoImage(temp)
     return sprite
 
-def click(event): #core game logic
-    #check the click position
+#draws the entire board
+def createBoard():
+    for i in range(divisions): #create the lines
+        canvas.create_line(0, partition * i, size, partition * i)
+        canvas.create_line(partition * i, 0, partition*i, size)
+
+    for row in range(0, divisions, 2): #color the tiles
+        for column in range(0, divisions, 2):
+            canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
+            canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
+
+def createPieces():
+    #create pieces
+    pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook] #temporal helper
+    for i in range(0,8):
+        #add pawns
+        blackList.append(Pawn(i,6, "black"))
+        whiteList.append(Pawn(i,1, "white"))
+
+        blackList.append(pieceOrder[i](i, 7, "black"))
+        whiteList.append(pieceOrder[i](i, 0, "white"))
+
+#given coordinates returns column and row
+def clickPosition(x,y):
     column, row = -1, -1
     for i in range(divisions): #column
-        if(event.x >= partition * i and event.x <= partition * (i + 1)):
-            #print("Column: " + str(i))
+        if(x >= partition * i and x <= partition * (i + 1)):
             column = i
     for i in range(divisions): #row
-        if(event.y >= partition * i and event.y <= partition * (i+1)):
-            #print("row: " + str(i))
+        if(y >= partition * i and y <= partition * (i+1)):
             row = i
-    #print("Column: " + str(column) + " - row: " + str(row)) #debug
+    return column, row
 
+def drawPieces():
+    for piece in whiteList + blackList:
+        piece.draw()
+
+def click(event): #core game logic
+    #which turn is it?
+    global turn
+    if(turn == "white"): pieceList = whiteList
+    else: pieceList = blackList
+
+    #get click
+    column, row = clickPosition(event.x, event.y)
+
+
+
+    #really messy, needs rewriting
     #check if a piece was clicked already
-    #if there was, then compare against possible movements
     global selectedPiece
     if(selectedPiece != None): #if there is a piece selected then check for marked tiles
         for tile in tileList:
-            print(tile)
-        return
+            if(tile.column == column and tile.row == row):
+                #move 
+                selectedPiece.move(column, row)
+                #flip turn
+                if(turn == "white"): turn == "black"
+                else: turn = "white"
+                return
+        
+        #if the tile clicked is not in the piece movements then reset
+        selectedPiece = None
+        for tile in tileList:
+            canvas.delete(tile.tkobject)
+        tileList.clear()
 
-    #if no piece was clicked then check against pieces
+    #if no piece was clicked then check if a piece was clicked this time
     for piece in pieceList:
         if piece.column == column and piece.row == row:
             piece.click()
             selectedPiece = piece
-###
+
+    drawPieces()
 
 ###init
-#create pieces
-pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
-for i in range(0,8):
-    #add pawns
-    pieceList.append(Pawn(i,6, "black"))
-    pieceList.append(Pawn(i,1, "white"))
-
-    pieceList.append(pieceOrder[i](i, 7, "black"))
-    pieceList.append(pieceOrder[i](i, 0, "white"))
-
-#draw the board
-#create the lines
-for i in range(divisions):
-    canvas.create_line(0, partition * i, size, partition * i)
-    canvas.create_line(partition * i, 0, partition*i, size )
-
-#color the tiles
-for row in range(0, divisions, 2):
-    for column in range(0, divisions, 2):
-        canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
-        canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
-
+#make clicking run the "click" function that handles all the core logic
 canvas.bind("<Button-1>", click)
 
-#draw all pieces
-for piece in pieceList:
-    piece.draw()
+createPieces()
+createBoard()
+drawPieces()
 
 #lets get this started!
 tkinter.mainloop()
