@@ -24,7 +24,7 @@ class Piece:
         self.row = row
         self.sprite = sprite
         self.side = side
-        self.tkobject = None #placeholder for the drawn piece
+        self.tkobject = None #piece itself
     
     def draw(self): #executed every cycle
         #draw itself
@@ -32,6 +32,9 @@ class Piece:
         x = partition * self.column + partition / 2
         y = partition * self.row + partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
+
+        #if the piece was clicked and ignored the next cycle delete the drawn tiles
+
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
@@ -44,21 +47,30 @@ class Pawn(Piece):
 class Rook(Piece): #torre
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, loadSprite("rook", side), side)
-    pass
+    
+    def click(self):
+        pass
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("knight", side), side)    
+        Piece.__init__(self, column, row, loadSprite("knight", side), side)
+    
+    def click(self):
+        pass
 
 class Bishop(Piece): #alfil
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, loadSprite("bishop", side), side)    
-    pass
+
+    def click(self):
+        pass
 
 class King(Piece):
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, loadSprite("king", side), side)  
-    pass
+
+    def click(self):
+        pass
 
 class Queen(Piece):
     def __init__(self, column, row, side):
@@ -68,33 +80,27 @@ class Queen(Piece):
         pass
 ###
 ###functions
+def markTile(column, row, color): #mark a tile as possible to attack
+    x = column * partition
+    y = row * partition
+    tileList.append(x, y, x+partition, y+partition, fill=color)
+    pass
+
 def loadSprite(piece, side):
     temp = Image.open("sprites/" +piece + "-" + side + ".png")
     temp.thumbnail((partition-10,partition- 10))
     sprite = ImageTk.PhotoImage(temp)
     return sprite
 
-def drawBoard():
-    #draw the lines
-    for i in range(divisions):
-        canvas.create_line(0, partition * i, size, partition * i)
-        canvas.create_line(partition * i, 0, partition*i, size )
-
-    #color the tiles
-    for row in range(0, divisions, 2):
-        for column in range(0, divisions, 2):
-            canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
-            canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
-
 def click(event): #core game logic
     #check the click position
     column, row = -1, -1
     for i in range(divisions): #column
-        if(event.x > partition * i and event.x < partition * (i + 1)):
+        if(event.x >= partition * i and event.x <= partition * (i + 1)):
             #print("Column: " + str(i))
             column = i
     for i in range(divisions): #row
-        if(event.y > partition * i and event.y < partition * (i+1)):
+        if(event.y >= partition * i and event.y <= partition * (i+1)):
             #print("row: " + str(i))
             row = i
     #print("Column: " + str(column) + " - row: " + str(row)) #debug
@@ -125,7 +131,18 @@ for i in range(0,8):
     pieceList.append(pieceOrder[i](i, 7, "black"))
     pieceList.append(pieceOrder[i](i, 0, "white"))
 
-drawBoard()
+#draw the board
+#create the lines
+for i in range(divisions):
+    canvas.create_line(0, partition * i, size, partition * i)
+    canvas.create_line(partition * i, 0, partition*i, size )
+
+#color the tiles
+for row in range(0, divisions, 2):
+    for column in range(0, divisions, 2):
+        canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
+        canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
+
 canvas.bind("<Button-1>", click)
 
 #draw all pieces
