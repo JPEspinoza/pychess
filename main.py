@@ -29,7 +29,7 @@ class Piece:
         self.sprite = sprite
         self.side = side
         self.tkobject = None #drawing of the piece itself
-    
+
     def draw(self): #executed every cycle
         #draw itself
         canvas.delete(self.tkobject)
@@ -40,8 +40,8 @@ class Piece:
     def move(self, column, row):
         self.column = column
         self.row = row
-        deleteTiles()
         self.draw()
+        deleteTiles()
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
@@ -51,7 +51,6 @@ class Pawn(Piece):
         else: self.direction = 1
     
     def click(self):
-        markTile(self.column, self.row, "red")
         markTile(self.column, self.row+self.direction, "yellow")
 
 class Rook(Piece): #torre
@@ -147,6 +146,8 @@ def clickToPosition(x,y):
     for i in range(divisions): #row
         if(y >= partition * i and y <= partition * (i+1)):
             row = i
+
+    #print("Column: " + str(column) + " - Row:" + str(row))
     return column, row
 
 #given a position returns the piece in the tile, the marked tile with potentially a piece on it or False
@@ -166,12 +167,25 @@ def drawPieces():
         piece.draw()
 
 def changeTurn():
-    global turn, oppositeTurn
+    global turn, oppositeTurn, selectedPiece
     turn, oppositeTurn = oppositeTurn, turn
+    selectedPiece = None
+    deleteTiles()
+
+#draw a tile, marking what was clicked
+def drawTempTile(column, row):
+    global tempTile
+    canvas.delete(tempTile)
+
+    x = column * partition
+    y = row * partition
+
+    tempTile = canvas.create_rectangle(x, y, x+partition, y+partition, fill="red")
 
 def click(event): #core game logic
     #get click
     column, row = clickToPosition(event.x, event.y)
+    drawTempTile(column, row)
 
     clickObject = positionToPiece(column, row)
 
