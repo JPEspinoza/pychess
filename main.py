@@ -36,22 +36,51 @@ class Piece:
         x = partition * self.column + partition / 2
         y = partition * self.row + partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
+    
+    def getIndex(self):
+        for i in range(len(pieceList)):
+            if pieceList[i].tkobject == self.tkobject:
+                return i
 
     def move(self, column, row):
+        #kill any other piece on the tile
+        piece = positionToPiece(column, row, oppositeTurn)
+        if(piece):
+            piece.delete()
+
+        #move to tile
         self.column = column
         self.row = row
         self.draw()
         deleteTiles()
+    
+    def delete(self):
+        #remove drawing
+        global canvas
+        #remove reference
+        pieceList.pop(self.getIndex())
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("pawn", side), side) #start the piece
+        #standard start
+        Piece.__init__(self, column, row, loadSprite("pawn", side), side)
+
+        #which way can this move
         if(side == "black"):
             self.direction = -1
         else: self.direction = 1
+
+        self.hasMoved = False #allow double move on first turn
     
     def click(self):
         markTile(self.column, self.row+self.direction, "yellow")
+
+        if(self.hasMoved == False):
+            markTile(self.column, self.row + self.direction *2, "yellow")
+            self.hasMoved = True
+
+    def move(self, column, row):
+        pass
 
 class Rook(Piece): #torre
     def __init__(self, column, row, side):
@@ -136,6 +165,9 @@ def createPieces():
 
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
+    
+    #debug
+    pieceList.append(Pawn(0, 3, "black"))
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
@@ -147,19 +179,20 @@ def clickToPosition(x,y):
         if(y >= partition * i and y <= partition * (i+1)):
             row = i
 
-    #print("Column: " + str(column) + " - Row:" + str(row))
     return column, row
 
-#given a position returns the piece in the tile, the marked tile with potentially a piece on it or False
-def positionToPiece(column, row):
+#given a position returns a tile or False
+def positionToTile(column, row):
     for tile in tileList:
         if(tile.column == column and tile.row == row):
             return tile
+    return False
 
+#given a position and side returns the piece or False
+def positionToPiece(column, row, side):
     for piece in pieceList:
-        if(piece.column == column and piece.row == row and piece.side == turn):
+        if(piece.column == column and piece.row == row and piece.side == side):
             return piece
-
     return False
 
 def drawPieces():
@@ -187,24 +220,24 @@ def click(event): #core game logic
     column, row = clickToPosition(event.x, event.y)
     drawTempTile(column, row)
 
-    clickObject = positionToPiece(column, row)
+    piece = positionToPiece(column, row, turn) #select piece, only allow side currently playing
 
     global selectedPiece
 
     #core logic
-    if(isinstance(clickObject, Piece)): #if piece was clicked then mark tiles
-
+    if(piece): #if piece was clicked then mark tiles
         if(selectedPiece != None): #but if a piece was already selected then first clear the tiles that it marked
             deleteTiles()
         
-        clickObject.click()
-        selectedPiece = clickObject
+        piece.click()
+        selectedPiece = piece
 
-    elif(isinstance(clickObject, Tile)): #if tile was clicked move to the tile, if there is a piece on the tile being moved to then kill that piece
+    elif(positionToTile(column, row)): #if tile was clicked move to the tile, if there is a piece on the tile being moved to then kill that piece
         selectedPiece.move(column, row)
         changeTurn()
 
     else: #if nothing was clicked mark tile
+        drawTempTile(column, row)
         deleteTiles()
 
     #draw pieces to have everything above potentially marked tiles
