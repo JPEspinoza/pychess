@@ -12,15 +12,14 @@ partition = size / divisions
 canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
 canvas.pack()
 
-#list of pieces of each team
-whiteList = []
-blackList = []
-
+pieceList = []
 selectedPiece = None #piece that drew last
 tileList = [] #list of tiles the last piece drew
-table = [[],[]] #columns, row
+
+tempTile = None #marked tile when nothing clicked
 
 turn = "white"
+oppositeTurn = "black"
 
 ###classes
 class Piece:
@@ -41,6 +40,7 @@ class Piece:
     def move(self, column, row):
         self.column = column
         self.row = row
+        deleteTiles()
         self.draw()
 
 class Pawn(Piece):
@@ -104,7 +104,11 @@ def markTile(column, row, color): #mark a tile as possible to attack
     tile = Tile(column, row, tkobject)
 
     tileList.append(tile)
-    pass
+
+def deleteTiles():
+    for tile in tileList:
+        canvas.delete(tile.tkobject)
+    tileList.clear()
 
 def loadSprite(piece, side):
     temp = Image.open("sprites/" +piece + "-" + side + ".png")
@@ -128,14 +132,14 @@ def createPieces():
     pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook] #temporal helper
     for i in range(0,8):
         #add pawns
-        blackList.append(Pawn(i,6, "black"))
-        whiteList.append(Pawn(i,1, "white"))
+        pieceList.append(Pawn(i,6, "black"))
+        pieceList.append(Pawn(i,1, "white"))
 
-        blackList.append(pieceOrder[i](i, 7, "black"))
-        whiteList.append(pieceOrder[i](i, 0, "white"))
+        pieceList.append(pieceOrder[i](i, 7, "black"))
+        pieceList.append(pieceOrder[i](i, 0, "white"))
 
 #given coordinates returns column and row
-def clickPosition(x,y):
+def clickToPosition(x,y):
     column, row = -1, -1
     for i in range(divisions): #column
         if(x >= partition * i and x <= partition * (i + 1)):
@@ -145,46 +149,51 @@ def clickPosition(x,y):
             row = i
     return column, row
 
+#given a position returns the piece in the tile, the marked tile with potentially a piece on it or False
+def positionToPiece(column, row):
+    for tile in tileList:
+        if(tile.column == column and tile.row == row):
+            return tile
+
+    for piece in pieceList:
+        if(piece.column == column and piece.row == row and piece.side == turn):
+            return piece
+
+    return False
+
 def drawPieces():
-    for piece in whiteList + blackList:
+    for piece in pieceList:
         piece.draw()
 
+def changeTurn():
+    global turn, oppositeTurn
+    turn, oppositeTurn = oppositeTurn, turn
+
 def click(event): #core game logic
-    #which turn is it?
-    global turn
-    if(turn == "white"): pieceList = whiteList
-    else: pieceList = blackList
-
     #get click
-    column, row = clickPosition(event.x, event.y)
+    column, row = clickToPosition(event.x, event.y)
 
+    clickObject = positionToPiece(column, row)
 
-
-    #really messy, needs rewriting
-    #check if a piece was clicked already
     global selectedPiece
-    if(selectedPiece != None): #if there is a piece selected then check for marked tiles
-        for tile in tileList:
-            if(tile.column == column and tile.row == row):
-                #move 
-                selectedPiece.move(column, row)
-                #flip turn
-                if(turn == "white"): turn == "black"
-                else: turn = "white"
-                return
+
+    #core logic
+    if(isinstance(clickObject, Piece)): #if piece was clicked then mark tiles
+
+        if(selectedPiece != None): #but if a piece was already selected then first clear the tiles that it marked
+            deleteTiles()
         
-        #if the tile clicked is not in the piece movements then reset
-        selectedPiece = None
-        for tile in tileList:
-            canvas.delete(tile.tkobject)
-        tileList.clear()
+        clickObject.click()
+        selectedPiece = clickObject
 
-    #if no piece was clicked then check if a piece was clicked this time
-    for piece in pieceList:
-        if piece.column == column and piece.row == row:
-            piece.click()
-            selectedPiece = piece
+    elif(isinstance(clickObject, Tile)): #if tile was clicked move to the tile, if there is a piece on the tile being moved to then kill that piece
+        selectedPiece.move(column, row)
+        changeTurn()
 
+    else: #if nothing was clicked mark tile
+        deleteTiles()
+
+    #draw pieces to have everything above potentially marked tiles
     drawPieces()
 
 ###init
