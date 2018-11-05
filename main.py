@@ -72,15 +72,24 @@ class Pawn(Piece):
 
         self.hasMoved = False #allow double move on first turn
     
+    def tryMark(self, column, row, piece):
+        pass
+    
     def click(self):
-        markTile(self.column, self.row+self.direction, "yellow")
-
-        if(self.hasMoved == False):
-            markTile(self.column, self.row + self.direction *2, "yellow")
-            self.hasMoved = True
+        if(positionToPiece(self.column, self.row + self.direction, oppositeTurn) == False):
+            markTile(self.column, self.row+self.direction, "yellow")
+            if(self.hasMoved == False and positionToPiece(self.column, self.row + self.direction *2, oppositeTurn) == False):
+                markTile(self.column, self.row + self.direction *2, "yellow")
+        
+        #mark attacks
+        if(positionToPiece(self.column -1, self.row + self.direction, oppositeTurn)):
+            markTile(self.column -1, self.row + self.direction, "yellow")
+        if(positionToPiece(self.column + 1, self.row + self.direction, oppositeTurn)):
+            markTile(self.column + 1, self.row + self.direction, "yellow")
 
     def move(self, column, row):
-        pass
+        self.hasMoved = True
+        Piece.move(self, column, row)
 
 class Rook(Piece): #torre
     def __init__(self, column, row, side):
