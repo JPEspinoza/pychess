@@ -5,12 +5,9 @@ from PIL import Image, ImageTk, ImageOps
 ###variables
 master = tkinter.Tk()
 
-size = 720
+size = 600
 divisions = 8
 partition = size / divisions
-
-canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
-canvas.pack()
 
 pieceList = []
 selectedPiece = None #piece that drew last
@@ -139,6 +136,24 @@ class Tile:
         self.tkobject = tkobject
 
 ###functions
+def newGame():
+    #create pieces
+    pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook] #temporal helper
+    for i in range(0,8):
+        #add pawns
+        pieceList.append(Pawn(i,6, "black"))
+        pieceList.append(Pawn(i,1, "white"))
+
+        pieceList.append(pieceOrder[i](i, 7, "black"))
+        pieceList.append(pieceOrder[i](i, 0, "white"))
+    drawPieces()
+
+def loadGame(): #save the game function
+    print("load game")
+
+def saveGame(): #load a game function
+    print("save game")
+
 def markTile(column, row, color): #mark a tile as possible to attack
     x = column * partition
     y = row * partition
@@ -158,31 +173,6 @@ def loadSprite(piece, side):
     temp.thumbnail((partition-10,partition- 10))
     sprite = ImageTk.PhotoImage(temp)
     return sprite
-
-#draws the entire board
-def createBoard():
-    for i in range(divisions): #create the lines
-        canvas.create_line(0, partition * i, size, partition * i)
-        canvas.create_line(partition * i, 0, partition*i, size)
-
-    for row in range(0, divisions, 2): #color the tiles
-        for column in range(0, divisions, 2):
-            canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
-            canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
-
-def createPieces():
-    #create pieces
-    pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook] #temporal helper
-    for i in range(0,8):
-        #add pawns
-        pieceList.append(Pawn(i,6, "black"))
-        pieceList.append(Pawn(i,1, "white"))
-
-        pieceList.append(pieceOrder[i](i, 7, "black"))
-        pieceList.append(pieceOrder[i](i, 0, "white"))
-    
-    #debug
-    pieceList.append(Pawn(0, 3, "black"))
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
@@ -248,7 +238,6 @@ def click(event): #core game logic
         
         piece.click()
         selectedPiece = piece
-
     elif(positionToTile(column, row)): #if tile was clicked move to the tile, if there is a piece on the tile being moved to then kill that piece
         selectedPiece.move(column, row)
         changeTurn()
@@ -261,14 +250,33 @@ def click(event): #core game logic
     drawPieces()
 
 ###init
+##TK prepare
+canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
+canvas.pack()
+
+#create menu
+menubar = tkinter.Menu(master) #create menu
+filemenu = tkinter.Menu(menubar, tearoff=0)
+filemenu.add_command(label="New Game", command=newGame)
+filemenu.add_command(label="Open Game", command=loadGame)
+filemenu.add_command(label="Save Game", command=saveGame)
+filemenu.add_separator()
+filemenu.add_command(label="Exit", command=master.quit)
+menubar.add_cascade(label="File", menu=filemenu)
+master.config(menu=menubar) #display menu
+
 #make clicking run the "click" function that handles all the core logic
 canvas.bind("<Button-1>", click)
 
-createPieces()
-createBoard()
-drawPieces()
+#draw the board
+for i in range(divisions): #create the lines
+    canvas.create_line(0, partition * i, size, partition * i)
+    canvas.create_line(partition * i, 0, partition*i, size)
 
-#lets get this started!
+for row in range(0, divisions, 2): #color the tiles
+    for column in range(0, divisions, 2):
+        canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
+        canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
+
+#start program
 tkinter.mainloop()
-
-#standard: Columns, Rows
