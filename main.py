@@ -72,13 +72,10 @@ class Pawn(Piece):
 
         self.hasMoved = False #allow double move on first turn
     
-    def tryMark(self, column, row, piece):
-        pass
-    
     def click(self):
-        if(positionToPiece(self.column, self.row + self.direction, oppositeTurn) == False):
+        if(positionToPiece(self.column, self.row + self.direction) == False):
             markTile(self.column, self.row+self.direction, "yellow")
-            if(self.hasMoved == False and positionToPiece(self.column, self.row + self.direction *2, oppositeTurn) == False):
+            if(self.hasMoved == False and positionToPiece(self.column, self.row + self.direction *2) == False):
                 markTile(self.column, self.row + self.direction *2, "yellow")
         
         #mark attacks
@@ -96,7 +93,16 @@ class Rook(Piece): #torre
         Piece.__init__(self, column, row, loadSprite("rook", side), side)
     
     def click(self):
-        pass
+        for i in range(self.column, 8):
+            if(positionToPiece(self.column + i, self.row) == False):
+                markTile(self.column + i, self.row, "yellow")
+            else: break
+
+        for i in range(self.row, 8):
+            for i in range(self.column, 8):
+                if(positionToPiece(self.column, self.row + i) == False):
+                    markTile(self.column, self.row + i, "yellow")
+                else: break
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
@@ -198,10 +204,12 @@ def positionToTile(column, row):
     return False
 
 #given a position and side returns the piece or False
-def positionToPiece(column, row, side):
+def positionToPiece(column, row, side = None):
     for piece in pieceList:
-        if(piece.column == column and piece.row == row and piece.side == side):
-            return piece
+        if(piece.column == column and piece.row == row):
+            if(side != None):
+                if(piece.side == side): return piece
+            else: return piece
     return False
 
 def drawPieces():
