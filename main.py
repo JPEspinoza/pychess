@@ -5,7 +5,7 @@ from PIL import Image, ImageTk, ImageOps
 ###variables
 master = tkinter.Tk()
 
-size = 700
+size = 900
 divisions = 8
 partition = size / divisions
 
@@ -15,17 +15,38 @@ tileList = [] #list of tiles the last piece drew
 
 tempTile = None #marked tile when nothing clicked
 
+"""
+colorPallete = {
+    "bg": "peach puff",
+    "tiles": "coral",
+    "temp": "red",
+    "mark": "yellow"
+}
+"""
+colorPallete = {
+    "bg": "dark turquoise",
+    "tile": "steel blue",
+    "temp": "purple",
+    "mark": "lawn green"
+}
+
 turn = "white"
 oppositeTurn = "black"
 
 ###classes
 class Piece:
-    def __init__(self, column, row, sprite, side):
+    def __init__(self, column, row, side, piece):
         self.column = column
         self.row = row
-        self.sprite = sprite
         self.side = side
         self.tkobject = None #drawing of the piece itself
+        self.loadSprite(piece)
+
+    def loadSprite(self, piece):
+        temp = Image.open("sprites/" + piece + "-" + self.side + ".png")
+        offset = partition / 10
+        temp.thumbnail((partition-offset,partition- offset))
+        self.sprite = ImageTk.PhotoImage(temp)
 
     def draw(self): #executed every cycle
         #draw itself
@@ -57,7 +78,7 @@ class Piece:
         #remove reference
         pieceList.pop(self.getIndex())
 
-    def markTile(self, column, row, color = "lawn green"): #mark a tile as possible to move
+    def markTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
         x = column * partition
         y = row * partition
 
@@ -82,7 +103,7 @@ class Piece:
 class Pawn(Piece):
     def __init__(self, column, row, side):
         #standard start
-        Piece.__init__(self, column, row, loadSprite("pawn", side), side)
+        Piece.__init__(self, column, row, side, "pawn")
 
         #which way can this move
         if(side == "black"):
@@ -93,15 +114,15 @@ class Pawn(Piece):
     
     def click(self):
         if(positionToPiece(self.column, self.row + self.direction) == False):
-            Piece.markTile(self, self.column, self.row+self.direction, "lawn green")
+            Piece.markTile(self, self.column, self.row+self.direction)
             if(self.hasMoved == False and positionToPiece(self.column, self.row + self.direction *2) == False):
-                Piece.markTile(self, self.column, self.row + self.direction *2, "lawn green")
+                Piece.markTile(self, self.column, self.row + self.direction *2)
         
         #mark attacks
         if(positionToPiece(self.column -1, self.row + self.direction, oppositeTurn)):
-            Piece.markTile(self, self.column -1, self.row + self.direction, "lawn green")
+            Piece.markTile(self, self.column -1, self.row + self.direction)
         if(positionToPiece(self.column + 1, self.row + self.direction, oppositeTurn)):
-            Piece.markTile(self, self.column + 1, self.row + self.direction, "lawn green")
+            Piece.markTile(self, self.column + 1, self.row + self.direction)
 
     def move(self, column, row):
         self.hasMoved = True
@@ -109,7 +130,7 @@ class Pawn(Piece):
 
 class Rook(Piece): #torre
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("rook", side), side)
+        Piece.__init__(self, column, row, side, "rook")
     
     def click(self):
         for i in range(self.column + 1, 8):
@@ -126,14 +147,14 @@ class Rook(Piece): #torre
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("knight", side), side)
+        Piece.__init__(self, column, row, side, "knight")
     
     def click(self):
         pass
 
 class Bishop(Piece): #alfil
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("bishop", side), side)    
+        Piece.__init__(self, column, row, side, "bishop")    
 
     def click(self):
         directions = [[1,1], [-1,1], [1,-1], [-1,-1]]
@@ -149,14 +170,14 @@ class Bishop(Piece): #alfil
 
 class King(Piece):
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("king", side), side)  
+        Piece.__init__(self, column, row, side, "king")  
 
     def click(self):
         pass
 
 class Queen(Piece):
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, loadSprite("queen", side), side)
+        Piece.__init__(self, column, row, side, "queen")
     
     def click(self):
         pass
@@ -192,12 +213,6 @@ def deleteTiles():
     for tile in tileList:
         canvas.delete(tile.tkobject)
     tileList.clear()
-
-def loadSprite(piece, side):
-    temp = Image.open("sprites/" +piece + "-" + side + ".png")
-    temp.thumbnail((partition-10,partition- 10))
-    sprite = ImageTk.PhotoImage(temp)
-    return sprite
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
@@ -245,7 +260,7 @@ def drawTempTile(column, row):
     x = column * partition
     y = row * partition
 
-    tempTile = canvas.create_rectangle(x, y, x+partition, y+partition, fill="deep sky blue")
+    tempTile = canvas.create_rectangle(x, y, x+partition, y+partition, fill=colorPallete["temp"])
 
 def click(event): #core game logic
     #get click
@@ -276,7 +291,7 @@ def click(event): #core game logic
 
 ###init
 ##TK prepare
-canvas = tkinter.Canvas(master, width=size, height=size, bg="peach puff")
+canvas = tkinter.Canvas(master, width=size, height=size, bg=colorPallete["bg"])
 canvas.pack()
 
 #create menu
@@ -300,8 +315,8 @@ for i in range(divisions): #create the lines
 
 for row in range(0, divisions, 2): #color the tiles
     for column in range(0, divisions, 2):
-        canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill="coral")
-        canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill="coral")
+        canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill=colorPallete["tile"])
+        canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill=colorPallete["tile"])
 
 newGame()
 
