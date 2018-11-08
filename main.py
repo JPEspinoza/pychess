@@ -57,12 +57,24 @@ class Piece:
         #remove reference
         pieceList.pop(self.getIndex())
 
-    def checkMove(self,column, row):
+    def markTile(self, column, row, color = "lawn green"): #mark a tile as possible to move
+        x = column * partition
+        y = row * partition
+
+        tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=color)
+        tile = Tile(column, row, tkobject)
+
+        tileList.append(tile)
+
+    def tryMark(self,column, row):
+        if(column > 7 or row > 7 or column < 0 or row < 0):
+            return False
+
         piece = positionToPiece(column, row)
         if(piece == False):
-            markTile(column, row)
+            self.markTile(column, row)
         elif(piece.side == oppositeTurn):
-            markTile(column, row)
+            self.markTile(column, row)
             return False
         else:
             return False
@@ -81,15 +93,15 @@ class Pawn(Piece):
     
     def click(self):
         if(positionToPiece(self.column, self.row + self.direction) == False):
-            markTile(self.column, self.row+self.direction, "lawn green")
+            Piece.markTile(self, self.column, self.row+self.direction, "lawn green")
             if(self.hasMoved == False and positionToPiece(self.column, self.row + self.direction *2) == False):
-                markTile(self.column, self.row + self.direction *2, "lawn green")
+                Piece.markTile(self, self.column, self.row + self.direction *2, "lawn green")
         
         #mark attacks
         if(positionToPiece(self.column -1, self.row + self.direction, oppositeTurn)):
-            markTile(self.column -1, self.row + self.direction, "lawn green")
+            Piece.markTile(self, self.column -1, self.row + self.direction, "lawn green")
         if(positionToPiece(self.column + 1, self.row + self.direction, oppositeTurn)):
-            markTile(self.column + 1, self.row + self.direction, "lawn green")
+            Piece.markTile(self, self.column + 1, self.row + self.direction, "lawn green")
 
     def move(self, column, row):
         self.hasMoved = True
@@ -101,17 +113,16 @@ class Rook(Piece): #torre
     
     def click(self):
         for i in range(self.column + 1, 8):
-            if(Piece.checkMove(self, i, self.row) == False):
-                break
+            if(Piece.tryMark(self, i, self.row) == False): break
         
         for i in range(self.row + 1, 8):
-            if(Piece.checkMove(self, self.column, i) == False): break
+            if(Piece.tryMark(self, self.column, i) == False): break
 
         for i in range(self.column - 1, -1, -1):
-            if Piece.checkMove(self, i, self.row) == False: break
+            if Piece.tryMark(self, i, self.row) == False: break
             
         for i in range(self.row -1, -1, -1):
-            if Piece.checkMove(self, self.column, i) == False: break
+            if Piece.tryMark(self, self.column, i) == False: break
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
@@ -125,7 +136,16 @@ class Bishop(Piece): #alfil
         Piece.__init__(self, column, row, loadSprite("bishop", side), side)    
 
     def click(self):
-        pass
+        directions = [[1,1], [-1,1], [1,-1], [-1,-1]]
+        for dir in directions:
+            column = self.column + dir[0]
+            row = self.row + dir[1]
+            while(True):
+                if(Piece.tryMark(self, column, row) == False):
+                    break
+                else:
+                    column += dir[0]
+                    row += dir[1]
 
 class King(Piece):
     def __init__(self, column, row, side):
@@ -159,7 +179,7 @@ def newGame():
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
     
-    pieceList.append(Rook(4,3,"white"))
+    pieceList.append(Bishop(4,3,"white"))
     drawPieces()
 
 def loadGame(): #save the game function
@@ -167,15 +187,6 @@ def loadGame(): #save the game function
 
 def saveGame(): #load a game function
     print("save game")
-
-def markTile(column, row, color = "lawn green"): #mark a tile as possible to attack
-    x = column * partition
-    y = row * partition
-
-    tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=color)
-    tile = Tile(column, row, tkobject)
-
-    tileList.append(tile)
 
 def deleteTiles():
     for tile in tileList:
