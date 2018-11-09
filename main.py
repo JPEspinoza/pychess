@@ -20,14 +20,16 @@ colorPallete = {
     "bg": "peach puff",
     "tiles": "coral",
     "temp": "red",
-    "mark": "yellow"
+    "mark": "yellow",
+    "attack": "red"
 }
 """
 colorPallete = {
     "bg": "dark turquoise",
     "tile": "steel blue",
     "temp": "purple",
-    "mark": "lawn green"
+    "mark": "lawn green",
+    "attack": "?"
 }
 
 turn = "white"
@@ -54,11 +56,6 @@ class Piece:
         x = partition * self.column + partition / 2
         y = partition * self.row + partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
-    
-    def getIndex(self):
-        for i in range(len(pieceList)):
-            if pieceList[i].tkobject == self.tkobject:
-                return i
 
     def move(self, column, row):
         #kill any other piece on the tile
@@ -76,7 +73,22 @@ class Piece:
         #remove drawing
         global canvas
         #remove reference
-        pieceList.pop(self.getIndex())
+        index = None
+        for i in range(len(pieceList)):
+            if pieceList[i].tkobject == self.tkobject:
+                index = i
+        pieceList.pop(index)
+    
+    def stdMark(self, directions):
+        for dir in directions:
+            column = self.column + dir[0]
+            row = self.row + dir[1]
+            while(True):
+                if(Piece.tryMark(self, column, row) == False):
+                    break
+                else:
+                    column += dir[0]
+                    row += dir[1]
 
     def markTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
         x = column * partition
@@ -129,21 +141,12 @@ class Pawn(Piece):
         Piece.move(self, column, row)
 
 class Rook(Piece): #torre
+    directions = [[1,0], [0,1], [-1,0], [0,-1]]
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "rook")
     
     def click(self):
-        for i in range(self.column + 1, 8):
-            if(Piece.tryMark(self, i, self.row) == False): break
-        
-        for i in range(self.row + 1, 8):
-            if(Piece.tryMark(self, self.column, i) == False): break
-
-        for i in range(self.column - 1, -1, -1):
-            if Piece.tryMark(self, i, self.row) == False: break
-            
-        for i in range(self.row -1, -1, -1):
-            if Piece.tryMark(self, self.column, i) == False: break
+        Piece.stdMark(self, Rook.directions)
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
@@ -153,34 +156,30 @@ class Knight(Piece): #caballo
         pass
 
 class Bishop(Piece): #alfil
+    directions = [[1,1], [-1,1], [1,-1], [-1,-1]]
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "bishop")    
 
     def click(self):
-        directions = [[1,1], [-1,1], [1,-1], [-1,-1]]
-        for dir in directions:
-            column = self.column + dir[0]
-            row = self.row + dir[1]
-            while(True):
-                if(Piece.tryMark(self, column, row) == False):
-                    break
-                else:
-                    column += dir[0]
-                    row += dir[1]
+        Piece.stdMark(self, Bishop.directions)
 
 class King(Piece):
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "king")  
 
     def click(self):
-        pass
+        for i in range(-1, 2):
+            for r in range(-1, 2):
+                print("marked : " + str(i) + " - " + str(r))
+                Piece.tryMark(self, self.column + i, self.row + r)
 
 class Queen(Piece):
+    directions = [[1,0], [0,1], [-1,0], [0,-1], [1,1], [-1,1], [1,-1], [-1,-1]]
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "queen")
     
     def click(self):
-        pass
+        Piece.stdMark(self, Queen.directions)
 
 class Tile:
     def __init__(self, column, row, tkobject):
@@ -200,7 +199,7 @@ def newGame():
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
     
-    pieceList.append(Bishop(4,3,"white"))
+    pieceList.append(King(4,3,"white"))
     drawPieces()
 
 def loadGame(): #save the game function
