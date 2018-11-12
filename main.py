@@ -1,11 +1,11 @@
-from enum import Enum
 import tkinter
+from tkinter import filedialog
 from PIL import Image, ImageTk, ImageOps
 
 ###variables
 master = tkinter.Tk()
 
-size = 900
+size = 700
 divisions = 8
 partition = size / divisions
 
@@ -43,6 +43,7 @@ class Piece:
         self.side = side
         self.tkobject = None #drawing of the piece itself
         self.loadSprite(piece)
+        self.type = piece
 
     def loadSprite(self, piece):
         temp = Image.open("sprites/" + piece + "-" + self.side + ".png")
@@ -213,6 +214,15 @@ def loadGame(): #save the game function
 
 def saveGame(): #load a game function
     print("save game")
+    #name = filedialog.askopenfilename(initialdir = "~",title = "Select file")
+    name = "save"
+    file = open(name, "w")
+    file.write("#piece, column, row\n")
+    for piece in pieceList:
+        file.write(piece.type + " " + str(piece.column) + " " + str(piece.row) +"\n")
+    file.write("turn: " + turn)
+    file.close()
+    print("game saved")
 
 def deleteTiles():
     for tile in tileList:
