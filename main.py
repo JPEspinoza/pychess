@@ -79,7 +79,8 @@ class Piece:
                 index = i
         pieceList.pop(index)
     
-    def stdMark(self, directions):
+    #creates straight line in direction [column, row]
+    def lineMark(self, directions):
         for dir in directions:
             column = self.column + dir[0]
             row = self.row + dir[1]
@@ -90,15 +91,8 @@ class Piece:
                     column += dir[0]
                     row += dir[1]
 
-    def markTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
-        x = column * partition
-        y = row * partition
-
-        tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=color)
-        tile = Tile(column, row, tkobject)
-
-        tileList.append(tile)
-
+    #marks a tile if there is nothing or an enemy
+    #returns false if it hits something that cannot be continued in a line
     def tryMark(self,column, row):
         if(column > 7 or row > 7 or column < 0 or row < 0):
             return False
@@ -111,6 +105,15 @@ class Piece:
             return False
         else:
             return False
+
+    def markTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
+        x = column * partition
+        y = row * partition
+
+        tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=color)
+        tile = Tile(column, row, tkobject)
+
+        tileList.append(tile)
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
@@ -146,14 +149,18 @@ class Rook(Piece): #torre
         Piece.__init__(self, column, row, side, "rook")
     
     def click(self):
-        Piece.stdMark(self, Rook.directions)
+        Piece.lineMark(self, Rook.directions)
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "knight")
     
     def click(self):
-        pass
+        moves = [[1,2], [2,1]]
+        for move in moves:
+            for i in [-1, 1]: 
+                for r in [-1,1]:
+                    Piece.tryMark(self, self.column + move[0] * i, self.row + move[1] * r)
 
 class Bishop(Piece): #alfil
     directions = [[1,1], [-1,1], [1,-1], [-1,-1]]
@@ -161,16 +168,15 @@ class Bishop(Piece): #alfil
         Piece.__init__(self, column, row, side, "bishop")    
 
     def click(self):
-        Piece.stdMark(self, Bishop.directions)
+        Piece.lineMark(self, Bishop.directions)
 
 class King(Piece):
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "king")  
 
     def click(self):
-        for i in range(-1, 2):
-            for r in range(-1, 2):
-                print("marked : " + str(i) + " - " + str(r))
+        for i in [-1, 0,1]:
+            for r in [-1,0,1]:
                 Piece.tryMark(self, self.column + i, self.row + r)
 
 class Queen(Piece):
@@ -179,7 +185,7 @@ class Queen(Piece):
         Piece.__init__(self, column, row, side, "queen")
     
     def click(self):
-        Piece.stdMark(self, Queen.directions)
+        Piece.lineMark(self, Queen.directions)
 
 class Tile:
     def __init__(self, column, row, tkobject):
@@ -199,7 +205,7 @@ def newGame():
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
     
-    pieceList.append(King(4,3,"white"))
+    pieceList.append(Knight(4,3,"white"))
     drawPieces()
 
 def loadGame(): #save the game function
