@@ -1,6 +1,6 @@
 import tkinter
-from tkinter import filedialog
 from PIL import Image, ImageTk, ImageOps
+from tkinter import filedialog
 
 ###variables
 master = tkinter.Tk()
@@ -195,9 +195,28 @@ class Tile:
         self.tkobject = tkobject
 
 ###functions
+#delete all pieces, turn to white
+def resetGame():
+    #this ones are redundant but want to make sure nothing gets away when restarting
+    global selectedPiece, tempTile
+    canvas.delete(tempTile)
+    tempTile = None
+    selectedPiece = None
+
+    deleteTiles()
+    for piece in pieceList:
+        canvas.delete(piece.tkobject)
+    pieceList.clear()
+
 def newGame():
     #create pieces
-    pieceOrder = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook] #helper
+    resetGame()
+
+    global turn, oppositeTurn
+    turn = "white"
+    oppositeTurn = "black"
+
+    pieceOrder = (Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook) #helper
     for i in range(0,8):
         #add pawns
         pieceList.append(Pawn(i,6, "black"))
@@ -210,19 +229,45 @@ def newGame():
     drawPieces()
 
 def loadGame(): #save the game function
-    print("load game")
+    file = filedialog.askopenfile(defaultextension=".pychess")
+
+    if file is None:
+        return
+
+    lines = file.readlines()
+
+    if(lines[0] != "pychess-standard-file-format-version-1\n"):
+        file.close()
+        return
+
+    resetGame()
+
+    for line in lines[1:]:
+        temp = line.split()
+        
+        if(temp[0] == "turn"):
+            global turn, oppositeTurn
+            turn = temp[1]
+            oppositeTurn = temp[2]
+        else: #create instances from name
+            classes = {"pawn": Pawn, "rook": Rook, "knight": Knight, "bishop": Bishop, "queen": Queen,"king": King}
+            pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
+            drawPieces()
+
+    file.close()
 
 def saveGame(): #load a game function
-    print("save game")
-    #name = filedialog.askopenfilename(initialdir = "~",title = "Select file")
-    name = "save"
-    file = open(name, "w")
-    file.write("#piece, column, row\n")
+    file = filedialog.asksaveasfile(mode='w', defaultextension=".pychess")
+    if file is None: # asksaveasfile return `None` if dialog closed with "cancel".
+        return
+
+    file.write("pychess-standard-file-format-version-1\n")
+
     for piece in pieceList:
-        file.write(piece.type + " " + str(piece.column) + " " + str(piece.row) +"\n")
-    file.write("turn: " + turn)
+        file.write(piece.type + " " + str(piece.column) + " " + str(piece.row) + " "+ piece.side +"\n")
+    file.write("turn " + turn + " " + oppositeTurn)
+
     file.close()
-    print("game saved")
 
 def deleteTiles():
     for tile in tileList:
