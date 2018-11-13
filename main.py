@@ -145,7 +145,7 @@ class Pawn(Piece):
         Piece.move(self, column, row)
 
 class Rook(Piece): #torre
-    directions = [[1,0], [0,1], [-1,0], [0,-1]]
+    directions = ((1,0), (0,1), (-1,0), (0,-1))
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "rook")
     
@@ -157,14 +157,14 @@ class Knight(Piece): #caballo
         Piece.__init__(self, column, row, side, "knight")
     
     def click(self):
-        moves = [[1,2], [2,1]]
+        moves = ((1,2), (2,1))
         for move in moves:
             for i in [-1, 1]: 
                 for r in [-1,1]:
                     Piece.tryMark(self, self.column + move[0] * i, self.row + move[1] * r)
 
 class Bishop(Piece): #alfil
-    directions = [[1,1], [-1,1], [1,-1], [-1,-1]]
+    directions = ((1,1), (-1,1), (1,-1), (-1,-1))
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "bishop")    
 
@@ -173,15 +173,27 @@ class Bishop(Piece): #alfil
 
 class King(Piece):
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, side, "king")  
+        Piece.__init__(self, column, row, side, "king")
+        self.hasMoved = False
+
+    def castling(self):
+        for i in range(1,5):
+            pass
 
     def click(self):
-        for i in [-1, 0,1]:
-            for r in [-1,0,1]:
+        for i in (-1, 0,1):
+            for r in (-1,0,1):
                 Piece.tryMark(self, self.column + i, self.row + r)
 
+        if(self.hasMoved == False):
+            self.castling()
+    
+    def move(self, column, row):
+        self.hasMoved = True
+        Piece.move(self, column, row)
+
 class Queen(Piece):
-    directions = [[1,0], [0,1], [-1,0], [0,-1], [1,1], [-1,1], [1,-1], [-1,-1]]
+    directions = ((1,0), (0,1), (-1,0), (0,-1), (1,1), (-1,1), (1,-1), (-1,-1))
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "queen")
     
@@ -224,8 +236,6 @@ def newGame():
         #add everything else
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
-    
-    pieceList.append(Knight(4,3,"white"))
     drawPieces()
 
 def loadGame(): #save the game function
