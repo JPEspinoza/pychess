@@ -148,9 +148,14 @@ class Rook(Piece): #torre
     directions = ((1,0), (0,1), (-1,0), (0,-1))
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "rook")
+        self.hasMoved = False
     
     def click(self):
         Piece.lineMark(self, Rook.directions)
+
+    def move(self, column, row):
+        self.hasMoved = True
+        Piece.move(self,column, row)
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
@@ -176,9 +181,15 @@ class King(Piece):
         Piece.__init__(self, column, row, side, "king")
         self.hasMoved = False
 
-    def castling(self):
-        for i in range(1,5):
-            pass
+    def checkCastling(self):
+        #right:
+        if(positionToPiece(self.column + 1, self.row) != False): return
+        if(positionToPiece(self.column + 2, self.row) != False): return
+        
+        rook = positionToPiece(self.column + 3, self.row)
+        if(rook == False or rook.type != "rook" or rook.hasMoved == True or rook.side != self.side): return
+        
+        self.markTile(self, self.column + 1, self.row)
 
     def click(self):
         for i in (-1, 0,1):
@@ -186,9 +197,15 @@ class King(Piece):
                 Piece.tryMark(self, self.column + i, self.row + r)
 
         if(self.hasMoved == False):
-            self.castling()
+            self.checkCastling()
     
     def move(self, column, row):
+        if(self.hasMoved == False):
+            rook = positionToPiece(column, row)
+            if(rook.type == "rook" and rook.side == self.side and rook.hasMoved == False):
+                rook.move(self.column, self.row)
+                Piece.move(self, column, row)
+
         self.hasMoved = True
         Piece.move(self, column, row)
 
