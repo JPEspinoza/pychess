@@ -149,13 +149,69 @@ class Rook(Piece): #torre
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "rook")
         self.hasMoved = False
+
+        #helper variable for King's castling
+        self.castling = None
     
     def click(self):
         Piece.lineMark(self, Rook.directions)
 
+        if(self.castling != None):
+            newcolumn, newrow = self.castling.column, self.castling.row
+            self.castling.move(self.column, self.row)
+            self.move(newcolumn, newrow)
+            changeTurn()
+
     def move(self, column, row):
         self.hasMoved = True
         Piece.move(self,column, row)
+
+class King(Piece):
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, side, "king")
+        self.hasMoved = False
+    
+    def checkRook(self, column, row):
+        rook = positionToPiece(column, row)
+        if(
+            rook != False and
+            rook.type == "rook" and
+            rook.hasMoved == False and
+            rook.side == self.side
+        ):
+            rook.castling = self
+            return True
+        return False
+
+    def checkCastling(self):
+        #right:
+        if(
+            positionToPiece(self.column + 1, self.row) == False and
+            positionToPiece(self.column + 2, self.row) == False and
+            self.checkRook(self.column + 3, self.row) == True
+        ):
+            Piece.markTile(self, self.column + 3, self.row)
+
+        #left:
+        if(
+            positionToPiece(self.column - 1, self.row) == False and
+            positionToPiece(self.column - 2, self.row) == False and
+            positionToPiece(self.column - 3, self.row) == False and
+            self.checkRook(self.column - 4, self.row) == True
+        ):
+            Piece.markTile(self, self.column - 4, self.row)
+
+    def click(self):
+        for i in (-1, 0,1):
+            for r in (-1,0,1):
+                Piece.tryMark(self, self.column + i, self.row + r)
+
+        if(self.hasMoved == False):
+            self.checkCastling()
+    
+    def move(self, column, row):
+        self.hasMoved = True
+        Piece.move(self, column, row)
 
 class Knight(Piece): #caballo
     def __init__(self, column, row, side):
@@ -175,39 +231,6 @@ class Bishop(Piece): #alfil
 
     def click(self):
         Piece.lineMark(self, Bishop.directions)
-
-class King(Piece):
-    def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, side, "king")
-        self.hasMoved = False
-
-    def checkCastling(self):
-        #right:
-        if(positionToPiece(self.column + 1, self.row) != False): return
-        if(positionToPiece(self.column + 2, self.row) != False): return
-        
-        rook = positionToPiece(self.column + 3, self.row)
-        if(rook == False or rook.type != "rook" or rook.hasMoved == True or rook.side != self.side): return
-        
-        self.markTile(self, self.column + 1, self.row)
-
-    def click(self):
-        for i in (-1, 0,1):
-            for r in (-1,0,1):
-                Piece.tryMark(self, self.column + i, self.row + r)
-
-        if(self.hasMoved == False):
-            self.checkCastling()
-    
-    def move(self, column, row):
-        if(self.hasMoved == False):
-            rook = positionToPiece(column, row)
-            if(rook.type == "rook" and rook.side == self.side and rook.hasMoved == False):
-                rook.move(self.column, self.row)
-                Piece.move(self, column, row)
-
-        self.hasMoved = True
-        Piece.move(self, column, row)
 
 class Queen(Piece):
     directions = ((1,0), (0,1), (-1,0), (0,-1), (1,1), (-1,1), (1,-1), (-1,-1))
@@ -350,13 +373,13 @@ def drawTempTile(column, row):
     tempTile = canvas.create_rectangle(x, y, x+partition, y+partition, fill=colorPallete["temp"])
 
 def click(event): #core game logic
+    global selectedPiece
+
     #get click
     column, row = clickToPosition(event.x, event.y)
     drawTempTile(column, row)
 
     piece = positionToPiece(column, row, turn) #select piece, only allow side currently playing
-
-    global selectedPiece
 
     #core logic
     if(piece): #if piece was clicked then mark tiles
@@ -365,6 +388,7 @@ def click(event): #core game logic
         
         piece.click()
         selectedPiece = piece
+
     elif(positionToTile(column, row)): #if tile was clicked move to the tile, if there is a piece on the tile being moved to then kill that piece
         selectedPiece.move(column, row)
         changeTurn()
