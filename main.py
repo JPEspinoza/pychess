@@ -73,14 +73,14 @@ class Piece:
         deleteTiles()
     
     def delete(self):
-        #remove drawing
-        global canvas
         #remove reference
         index = None
         for i in range(len(pieceList)):
             if pieceList[i].tkobject == self.tkobject:
                 index = i
         pieceList.pop(index)
+        #remove drawing
+        canvas.delete(self.tkobject)
     
     #creates straight line in direction [column, row]
     def lineMark(self, directions):
@@ -96,8 +96,9 @@ class Piece:
 
     #marks a tile if there is nothing or an enemy
     #returns false if it hits something that cannot be continued in a line
+    #(an ally or enemy)
     def tryMark(self,column, row):
-        if(column > 7 or row > 7 or column < 0 or row < 0):
+        if(column > 7 or row > 7 or column < 0 or row < 0): #out of bounds
             return False
 
         piece = positionToPiece(column, row)
@@ -163,10 +164,16 @@ class Rook(Piece): #torre
         self.castling = None
     
     def click(self):
-        if(self.castling != None and selectedPiece == self.castling): #if the king was selected before
-            newcolumn, newrow = self.castling.column, self.castling.row
-            self.castling.move(self.column, self.row) #move king
-            self.move(newcolumn, newrow) #move rook
+        if(self.hasMoved == False and self.castling != None and selectedPiece == self.castling): #if the king was selected before
+            if(self.castling.column > self.column): #if rook is to the left
+                self.move(self.column + 3, self.row)
+                self.castling.move(self.column - 1, self.row)
+
+            else: #if rook is to the right
+                self.move(self.column - 2, self.row)
+                self.castling.move(self.column + 1, self.row)
+            
+            self.castling = None
             changeTurn() #change turn
             return
         else: self.castling = None
@@ -228,14 +235,14 @@ class King(Piece):
         Piece.move(self, column, row)
 
 class Knight(Piece): #caballo
+    moves = ((1,2), (2,1))
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "knight")
     
     def click(self):
-        moves = ((1,2), (2,1))
-        for move in moves:
-            for i in [-1, 1]: 
-                for r in [-1,1]:
+        for move in Knight.moves:
+            for i in (-1, 1): 
+                for r in (-1,1):
                     Piece.tryMark(self, self.column + move[0] * i, self.row + move[1] * r)
         Piece.drawTiles(self)
 
@@ -316,6 +323,9 @@ def loadGame(): #save the game function
             global turn, oppositeTurn
             turn = temp[1]
             oppositeTurn = temp[2]
+        elif(temp[0] == "#"):
+            #ignore comments, note that the marker needs to be separated by a space
+            pass
         else: #create instances from name
             classes = {"pawn": Pawn, "rook": Rook, "knight": Knight, "bishop": Bishop, "queen": Queen,"king": King}
             pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
@@ -335,13 +345,6 @@ def saveGame(): #load a game function
     file.write("turn " + turn + " " + oppositeTurn)
 
     file.close()
-
-def deleteTiles():
-    for tile in tileList:
-        canvas.delete(tile.tkobject)
-    tileList.clear()
-    global selectedPiece
-    selectedPiece = None
 
 def undo():
     pass
@@ -381,6 +384,13 @@ def drawPieces():
     for piece in pieceList:
         piece.draw()
 
+#delete tiles marked by any piece
+def deleteTiles():
+    for tile in tileList:
+        canvas.delete(tile.tkobject)
+    tileList.clear()
+
+#change the turn
 def changeTurn():
     global turn, oppositeTurn
     turn, oppositeTurn = oppositeTurn, turn
@@ -416,10 +426,12 @@ def click(event): #core game logic
     elif(positionToTile(column, row)): #if tile was clicked move to the tile, if there is a piece on the tile being moved to then kill that piece
         selectedPiece.move(column, row)
         changeTurn()
+        selectedPiece = None
 
     else: #if nothing was clicked mark tile
         drawTempTile(column, row)
         deleteTiles()
+        selectedPiece = None
 
     #draw pieces to have everything above potentially marked tiles
     drawPieces()
