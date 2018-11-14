@@ -45,6 +45,8 @@ class Piece:
         self.loadSprite(piece)
         self.type = piece
 
+        self.tilesToDraw = []
+
     def loadSprite(self, piece):
         temp = Image.open("sprites/" + piece + "-" + self.side + ".png")
         offset = partition / 10
@@ -108,13 +110,18 @@ class Piece:
             return False
 
     def markTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
-        x = column * partition
-        y = row * partition
+        self.tilesToDraw.append((column, row, color))
 
-        tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=color)
-        tile = Tile(column, row, tkobject)
+    def drawTiles(self):
+        for tile in self.tilesToDraw:
+            x = partition * tile[0]
+            y = partition * tile[1]
 
-        tileList.append(tile)
+            tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=tile[2])
+            tile = Tile(tile[0], tile[1], tkobject)
+
+            tileList.append(tile)
+        self.tilesToDraw.clear()
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
@@ -139,6 +146,8 @@ class Pawn(Piece):
             Piece.markTile(self, self.column -1, self.row + self.direction)
         if(positionToPiece(self.column + 1, self.row + self.direction, oppositeTurn)):
             Piece.markTile(self, self.column + 1, self.row + self.direction)
+        
+        Piece.drawTiles(self)
 
     def move(self, column, row):
         self.hasMoved = True
@@ -154,13 +163,16 @@ class Rook(Piece): #torre
         self.castling = None
     
     def click(self):
-        Piece.lineMark(self, Rook.directions)
-
-        if(self.castling != None):
+        if(self.castling != None and selectedPiece == self.castling): #if the king was selected before
             newcolumn, newrow = self.castling.column, self.castling.row
-            self.castling.move(self.column, self.row)
-            self.move(newcolumn, newrow)
-            changeTurn()
+            self.castling.move(self.column, self.row) #move king
+            self.move(newcolumn, newrow) #move rook
+            changeTurn() #change turn
+            return
+        else: self.castling = None
+        
+        Piece.lineMark(self, Rook.directions)
+        Piece.drawTiles(self)
 
     def move(self, column, row):
         self.hasMoved = True
@@ -208,6 +220,8 @@ class King(Piece):
 
         if(self.hasMoved == False):
             self.checkCastling()
+        
+        Piece.drawTiles(self)
     
     def move(self, column, row):
         self.hasMoved = True
@@ -223,6 +237,7 @@ class Knight(Piece): #caballo
             for i in [-1, 1]: 
                 for r in [-1,1]:
                     Piece.tryMark(self, self.column + move[0] * i, self.row + move[1] * r)
+        Piece.drawTiles(self)
 
 class Bishop(Piece): #alfil
     directions = ((1,1), (-1,1), (1,-1), (-1,-1))
@@ -231,6 +246,7 @@ class Bishop(Piece): #alfil
 
     def click(self):
         Piece.lineMark(self, Bishop.directions)
+        Piece.drawTiles(self)
 
 class Queen(Piece):
     directions = ((1,0), (0,1), (-1,0), (0,-1), (1,1), (-1,1), (1,-1), (-1,-1))
@@ -239,6 +255,7 @@ class Queen(Piece):
     
     def click(self):
         Piece.lineMark(self, Queen.directions)
+        Piece.drawTiles(self)
 
 class Tile:
     def __init__(self, column, row, tkobject):
@@ -323,6 +340,14 @@ def deleteTiles():
     for tile in tileList:
         canvas.delete(tile.tkobject)
     tileList.clear()
+    global selectedPiece
+    selectedPiece = None
+
+def undo():
+    pass
+
+def redo():
+    pass
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
@@ -357,9 +382,8 @@ def drawPieces():
         piece.draw()
 
 def changeTurn():
-    global turn, oppositeTurn, selectedPiece
+    global turn, oppositeTurn
     turn, oppositeTurn = oppositeTurn, turn
-    selectedPiece = None
     deleteTiles()
 
 #draw a tile, marking what was clicked
@@ -414,6 +438,12 @@ filemenu.add_command(label="Save Game", command=saveGame)
 filemenu.add_separator()
 filemenu.add_command(label="Exit", command=master.quit)
 menubar.add_cascade(label="File", menu=filemenu)
+
+editmenu = tkinter.Menu(menubar, tearoff=0)
+editmenu.add_command(label="Undo", command=undo)
+editmenu.add_command(label="Redo", command=redo)
+menubar.add_cascade(label="Edit", menu=editmenu)
+
 master.config(menu=menubar) #display menu
 
 #make clicking run the "click" function that handles all the core logic
