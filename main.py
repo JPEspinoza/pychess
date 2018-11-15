@@ -15,8 +15,6 @@ tileList = [] #list of tiles the last piece drew
 
 tempTile = None #marked tile when nothing clicked
 
-board = [[None for column in range(divisions)] for row in range(divisions)]
-
 """
 colorPallete = {
     "bg": "peach puff",
@@ -63,14 +61,6 @@ class Piece:
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
 
     def move(self, column, row):
-        #kill board
-        board[column][row] = None
-
-        #mark the board
-        board[self.column][self.row] = None
-        board[column][row] = self
-        #printBoard()
-
         #kill any other piece on the tile
         piece = positionToPiece(column, row, oppositeTurn)
         if(piece):
@@ -129,7 +119,7 @@ class Piece:
             y = partition * tile[1]
 
             tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=tile[2])
-            tile = markedTile(tile[0], tile[1], tkobject)
+            tile = Tile(tile[0], tile[1], tkobject)
 
             tileList.append(tile)
         self.tilesToDraw.clear()
@@ -254,16 +244,17 @@ class King(Piece):
         Piece.move(self, column, row)
 
     def update(self):
-        Piece.update(self)
         #check for incoming attacks of every enemy
         for piece in pieceList:
-            if(piece.side != self.side):
-                piece.markTiles()
-                for tile in piece.tilesToDraw:
-                    if(tile[0] == self.column and tile[1] == self.row):
-                        tkinter.messagebox.showinfo("Check", "check!")
-                #instead of drawing the tiles just clear
-                piece.tilesToDraw.clear()
+            if(piece.side == self.side): return
+            piece.markTiles()
+            for tile in piece.tilesToDraw:
+                if(tile[0] == self.column and tile[1] == self.row):
+                    #tkinter.messagebox.showinfo("Check", "check!")
+                    pass
+            piece.tilesToDraw.clear()
+
+        Piece.update(self)
 
 class Knight(Piece): #caballo
     moves = ((1,2), (2,1))
@@ -304,27 +295,13 @@ class Queen(Piece):
         self.markTiles()
         Piece.drawTiles(self)
 
-class markedTile:
+class Tile:
     def __init__(self, column, row, tkobject):
         self.column = column
         self.row = row
         self.tkobject = tkobject
 
-class Tile:
-    def __init__(self, column, row):
-        self.piece = None
-        self.marks = []
-
 ###functions
-#debug: print the board
-def printBoard():
-    for row in range(divisions):
-        string = ""
-        for column in range(divisions):
-            if(board[column][row] == None): string = string + " None "
-            else: string = string + str(board[column][row].type) + " "
-        print(string)
-
 #delete all pieces, turn to white
 def resetGame():
     #this ones are redundant but want to make sure nothing gets away when restarting
@@ -351,18 +328,10 @@ def newGame():
         #add pawns
         pieceList.append(Pawn(i,6, "black"))
         pieceList.append(Pawn(i,1, "white"))
-
-        board[i][6] = Pawn(i, 6, "black")
-        board[i][1] = Pawn(i, 1, "white")
-
         #add everything else
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
-
-        board[i][7] = pieceOrder[i](i, 7 , "black")
-        board[i][0] = pieceOrder[i](i, 0, "white")
     drawPieces()
-    printBoard()
 
 def loadGame(): #save the game function
     file = filedialog.askopenfile(defaultextension=".pychess")
@@ -419,11 +388,6 @@ def undo():
 def redo():
     pass
 
-def outOfBounds(column, row):
-    if(column > 7 or row > 7 or column < 0 or row < 0): #out of bounds
-        return False
-    return True
-
 #given coordinates returns column and row
 def clickToPosition(x,y):
     column, row = -1, -1
@@ -445,14 +409,12 @@ def positionToTile(column, row):
 
 #given a position and side returns the piece or False
 def positionToPiece(column, row, side = None):
-    if(outOfBounds(column, row) == False): return False
-
-    piece = board[column][row]
-
-    if(piece == None): return False
-    elif(side != None and piece.side == side): return piece
-    elif(side == None): return piece
-    else: return False
+    for piece in pieceList:
+        if(piece.column == column and piece.row == row):
+            if(side != None):
+                if(piece.side == side): return piece
+            else: return piece
+    return False
 
 def drawPieces():
     for piece in pieceList:
