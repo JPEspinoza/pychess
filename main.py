@@ -1,9 +1,9 @@
 import tkinter
 from PIL import Image, ImageTk, ImageOps
-from tkinter import filedialog
+from tkinter import filedialog, messagebox, Tk, Menu
 
 ###variables
-master = tkinter.Tk()
+master = Tk()
 
 size = 700
 divisions = 8
@@ -53,7 +53,7 @@ class Piece:
         temp.thumbnail((partition-offset,partition- offset))
         self.sprite = ImageTk.PhotoImage(temp)
 
-    def draw(self): #executed every cycle
+    def update(self): #executed every cycle
         #draw itself
         canvas.delete(self.tkobject)
         x = partition * self.column + partition / 2
@@ -69,7 +69,7 @@ class Piece:
         #move to tile
         self.column = column
         self.row = row
-        self.draw()
+        self.update()
         deleteTiles()
     
     def delete(self):
@@ -135,8 +135,8 @@ class Pawn(Piece):
         else: self.direction = 1
 
         self.hasMoved = False #allow double move on first turn
-    
-    def click(self):
+
+    def markTiles(self):
         if(positionToPiece(self.column, self.row + self.direction) == False):
             Piece.markTile(self, self.column, self.row+self.direction)
             if(self.hasMoved == False and positionToPiece(self.column, self.row + self.direction *2) == False):
@@ -147,7 +147,9 @@ class Pawn(Piece):
             Piece.markTile(self, self.column -1, self.row + self.direction)
         if(positionToPiece(self.column + 1, self.row + self.direction, oppositeTurn)):
             Piece.markTile(self, self.column + 1, self.row + self.direction)
-        
+    
+    def click(self):
+        self.markTiles()
         Piece.drawTiles(self)
 
     def move(self, column, row):
@@ -163,7 +165,7 @@ class Rook(Piece): #torre
         #helper variable for King's castling
         self.castling = None
     
-    def click(self):
+    def markTiles(self):
         if(self.hasMoved == False and self.castling != None and selectedPiece == self.castling): #if the king was selected before
             if(self.castling.column > self.column): #if rook is to the left
                 self.move(self.column + 3, self.row)
@@ -179,6 +181,9 @@ class Rook(Piece): #torre
         else: self.castling = None
         
         Piece.lineMark(self, Rook.directions)
+        
+    def click(self):
+        self.markTiles()
         Piece.drawTiles(self)
 
     def move(self, column, row):
@@ -189,25 +194,25 @@ class King(Piece):
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "king")
         self.hasMoved = False
-    
-    def checkRook(self, column, row):
-        rook = positionToPiece(column, row)
-        if(
-            rook != False and
-            rook.type == "rook" and
-            rook.hasMoved == False and
-            rook.side == self.side
-        ):
-            rook.castling = self
-            return True
-        return False
 
     def checkCastling(self):
+        def checkRook(column, row): #no need to put this function on a higher scope
+            rook = positionToPiece(column, row)
+            if(
+                rook != False and
+                rook.type == "rook" and
+                rook.hasMoved == False and
+                rook.side == self.side
+            ):
+                rook.castling = self
+                return True
+            return False
+        
         #right:
         if(
             positionToPiece(self.column + 1, self.row) == False and
             positionToPiece(self.column + 2, self.row) == False and
-            self.checkRook(self.column + 3, self.row) == True
+            checkRook(self.column + 3, self.row) == True
         ):
             Piece.markTile(self, self.column + 3, self.row)
 
@@ -216,43 +221,66 @@ class King(Piece):
             positionToPiece(self.column - 1, self.row) == False and
             positionToPiece(self.column - 2, self.row) == False and
             positionToPiece(self.column - 3, self.row) == False and
-            self.checkRook(self.column - 4, self.row) == True
+            checkRook(self.column - 4, self.row) == True
         ):
             Piece.markTile(self, self.column - 4, self.row)
-
-    def click(self):
+    
+    def markTiles(self):
+        #movement
         for i in (-1, 0,1):
             for r in (-1,0,1):
                 Piece.tryMark(self, self.column + i, self.row + r)
 
+        #castling
         if(self.hasMoved == False):
             self.checkCastling()
-        
+
+    def click(self):
+        self.markTiles()
         Piece.drawTiles(self)
     
     def move(self, column, row):
         self.hasMoved = True
         Piece.move(self, column, row)
 
+    def update(self):
+        #check for incoming attacks of every enemy
+        for piece in pieceList:
+            if(piece.side == self.side): return
+            piece.markTiles()
+            for tile in piece.tilesToDraw:
+                if(tile[0] == self.column and tile[1] == self.row):
+                    #tkinter.messagebox.showinfo("Check", "check!")
+                    pass
+            piece.tilesToDraw.clear()
+
+        Piece.update(self)
+
 class Knight(Piece): #caballo
     moves = ((1,2), (2,1))
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "knight")
     
-    def click(self):
+    def markTiles(self):
         for move in Knight.moves:
             for i in (-1, 1): 
                 for r in (-1,1):
                     Piece.tryMark(self, self.column + move[0] * i, self.row + move[1] * r)
+    
+    def click(self):
+        self.markTiles()
         Piece.drawTiles(self)
 
 class Bishop(Piece): #alfil
     directions = ((1,1), (-1,1), (1,-1), (-1,-1))
     def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, side, "bishop")    
+        Piece.__init__(self, column, row, side, "bishop")
+
+    def markTiles(self):
+        Piece.lineMark(self, Bishop.directions)
 
     def click(self):
-        Piece.lineMark(self, Bishop.directions)
+        self.markTiles()
         Piece.drawTiles(self)
 
 class Queen(Piece):
@@ -260,8 +288,11 @@ class Queen(Piece):
     def __init__(self, column, row, side):
         Piece.__init__(self, column, row, side, "queen")
     
-    def click(self):
+    def markTiles(self):
         Piece.lineMark(self, Queen.directions)
+    
+    def click(self):
+        self.markTiles()
         Piece.drawTiles(self)
 
 class Tile:
@@ -311,6 +342,7 @@ def loadGame(): #save the game function
     lines = file.readlines()
 
     if(lines[0] != "pychess-standard-file-format-version-1\n"):
+        tkinter.messagebox.showerror("Invalid file format", "the file you are trying to load is not a pychess file")
         file.close()
         return
 
@@ -318,6 +350,7 @@ def loadGame(): #save the game function
 
     for line in lines[1:]:
         temp = line.split()
+        classes = {"pawn": Pawn, "rook": Rook, "knight": Knight, "bishop": Bishop, "queen": Queen,"king": King}
         
         if(temp[0] == "turn"):
             global turn, oppositeTurn
@@ -326,11 +359,14 @@ def loadGame(): #save the game function
         elif(temp[0] == "#"):
             #ignore comments, note that the marker needs to be separated by a space
             pass
-        else: #create instances from name
-            classes = {"pawn": Pawn, "rook": Rook, "knight": Knight, "bishop": Bishop, "queen": Queen,"king": King}
+        elif temp[0] in classes: #create instances from name
             pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
-            drawPieces()
-
+        else:
+            tkinter.messagebox.showerror("Invalid data", "the file you are trying to load contains invalid data")
+            resetGame()
+            return
+    
+    drawPieces()
     file.close()
 
 def saveGame(): #load a game function
@@ -382,7 +418,7 @@ def positionToPiece(column, row, side = None):
 
 def drawPieces():
     for piece in pieceList:
-        piece.draw()
+        piece.update()
 
 #delete tiles marked by any piece
 def deleteTiles():
