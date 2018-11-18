@@ -1,11 +1,11 @@
 import tkinter
-from PIL import Image, ImageTk, ImageOps
 from tkinter import filedialog, messagebox, Tk, Menu
+from PIL import Image, ImageTk, ImageOps
 
 ###variables
 master = Tk()
 
-size = 700
+size = 800
 divisions = 8
 partition = size / divisions
 
@@ -14,6 +14,8 @@ selectedPiece = None #piece that drew last
 tileList = [] #list of tiles the last piece drew
 
 tempTile = None #marked tile when nothing clicked
+
+game = True
 
 """
 colorPallete = {
@@ -46,12 +48,19 @@ class Piece:
         self.type = piece
         self.tilesToDraw = []
 
+        self.map = [[None for row in range(divisions)] for column in range(divisions)]
+
     def loadSprite(self, piece):
         temp = Image.open("sprites/" + piece + "-" + self.side + ".png")
         offset = partition / 10
         temp.thumbnail((partition-offset,partition- offset))
         self.sprite = ImageTk.PhotoImage(temp)
 
+    #run at the begining of every turn
+    def update(self):
+        pass
+
+    #run everytime you want to draw yourself
     def draw(self):
         #draw itself
         canvas.delete(self.tkobject)
@@ -111,6 +120,7 @@ class Piece:
 
     def mapTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
         self.tilesToDraw.append((column, row, color))
+        self.map[column][row] = (column, row, color)
 
     def drawTiles(self): #draw the tiles where movement is possible
         for tile in self.tilesToDraw:
@@ -122,40 +132,6 @@ class Piece:
 
             tileList.append(tile)
         self.tilesToDraw.clear()
-
-class Rook(Piece): #torre
-    directions = ((1,0), (0,1), (-1,0), (0,-1))
-    def __init__(self, column, row, side):
-        Piece.__init__(self, column, row, side, "rook")
-        self.hasMoved = False
-
-        #helper variable for King's castling
-        self.castling = None
-    
-    def mapMovements(self):
-        if(self.hasMoved == False and self.castling != None and selectedPiece == self.castling and self.row == self.castling.row): #if the king was selected before
-            if(self.castling.column > self.column): #if rook is to the left
-                self.move(self.column + 3, self.row)
-                self.castling.move(self.column - 1, self.row)
-
-            else: #if rook is to the right
-                self.move(self.column - 2, self.row)
-                self.castling.move(self.column + 1, self.row)
-            
-            self.castling = None
-            changeTurn() #change turn
-            return
-        else: self.castling = None
-        
-        Piece.lineMark(self, Rook.directions)
-        
-    def click(self):
-        self.mapMovements()
-        Piece.drawTiles(self)
-
-    def move(self, column, row):
-        self.hasMoved = True
-        Piece.move(self,column, row)
 
 class King(Piece):
     def __init__(self, column, row, side):
@@ -191,6 +167,9 @@ class King(Piece):
             checkRook(self.column - 4, self.row) == True
         ):
             Piece.mapTile(self, self.column - 4, self.row)
+
+    def checkAttack(self, column, row):
+        pass
     
     def mapMovements(self):
         #movement
@@ -209,6 +188,44 @@ class King(Piece):
     def move(self, column, row):
         self.hasMoved = True
         Piece.move(self, column, row)
+
+    #check at the begining of the turn if its under attack
+    def update(self):
+        pass
+
+class Rook(Piece): #torre
+    directions = ((1,0), (0,1), (-1,0), (0,-1))
+    def __init__(self, column, row, side):
+        Piece.__init__(self, column, row, side, "rook")
+        self.hasMoved = False
+
+        #helper variable for King's castling
+        self.castling = None
+    
+    def mapMovements(self):
+        if(self.hasMoved == False and self.castling != None and selectedPiece == self.castling and self.row == self.castling.row): #if the king was selected before
+            if(self.castling.column > self.column): #if rook is to the left
+                self.move(self.column + 3, self.row)
+                self.castling.move(self.column - 1, self.row)
+
+            else: #if rook is to the right
+                self.move(self.column - 2, self.row)
+                self.castling.move(self.column + 1, self.row)
+            
+            self.castling = None
+            changeTurn() #change turn
+            return
+        else: self.castling = None
+        
+        Piece.lineMark(self, Rook.directions)
+        
+    def click(self):
+        self.mapMovements()
+        Piece.drawTiles(self)
+
+    def move(self, column, row):
+        self.hasMoved = True
+        Piece.move(self,column, row)
 
 class Pawn(Piece):
     def __init__(self, column, row, side):
@@ -374,10 +391,10 @@ def saveGame(): #load a game function
     file.close()
 
 def undo():
-    pass
+    print("undo")
 
 def redo():
-    pass
+    print("redo")
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
@@ -407,6 +424,10 @@ def positionToPiece(column, row, side = None):
             else: return piece
     return False
 
+def updatePieces():
+    for piece in pieceList:
+        piece.update()
+
 def drawPieces():
     for piece in pieceList:
         piece.draw()
@@ -423,6 +444,21 @@ def changeTurn():
     turn, oppositeTurn = oppositeTurn, turn
     deleteTiles()
 
+    whiteKing = False
+    blackKing = False
+
+    for piece in pieceList:
+        if(piece.type == "king"):
+            if(piece.side == "white"):
+                whiteKing = True
+            elif(piece.side == "black"):
+                blackKing = True
+    global game
+    if(whiteKing == False):
+        game = "black"
+    elif (blackKing == False):
+        game = "white"
+
 #draw a tile, marking what was clicked
 def drawTempTile(column, row):
     global tempTile
@@ -434,7 +470,12 @@ def drawTempTile(column, row):
     tempTile = canvas.create_rectangle(x, y, x+partition, y+partition, fill=colorPallete["temp"])
 
 def click(event): #core game logic
-    global selectedPiece
+    global game
+    if(game != True):
+        tkinter.messagebox.showinfo("Winner", "Winner: " + str(game))
+        return
+
+    updatePieces() #update pieces, pretty much exclusively for the king...
 
     #get click
     column, row = clickToPosition(event.x, event.y)
@@ -442,6 +483,7 @@ def click(event): #core game logic
 
     piece = positionToPiece(column, row, turn) #select piece, only allow side currently playing
 
+    global selectedPiece
     #core logic
     if(piece): #if piece was clicked then mark tiles
         if(selectedPiece != None): #but if a piece was already selected then first clear the tiles that it marked
