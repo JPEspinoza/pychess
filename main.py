@@ -15,7 +15,14 @@ tileList = [] #list of tiles the last piece drew
 
 tempTile = None #marked tile when nothing clicked
 
-game = True
+game = True #did somebody lose?
+
+gameCache = [] #keep state of turns in memory
+
+turn = "white"
+oppositeTurn = "black"
+
+debug = True
 
 """
 colorPallete = {
@@ -33,9 +40,6 @@ colorPallete = {
     "mark": "lawn green",
     "attack": "?"
 }
-
-turn = "white"
-oppositeTurn = "black"
 
 ###classes
 class Piece:
@@ -69,6 +73,8 @@ class Piece:
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
 
     def move(self, column, row):
+        cacheGame() #snapshot the game before moving
+
         #kill any other piece on the tile
         piece = positionToPiece(column, row, oppositeTurn)
         if(piece):
@@ -204,14 +210,16 @@ class Rook(Piece): #torre
     
     def mapMovements(self):
         if(self.hasMoved == False and self.castling != None and selectedPiece == self.castling and self.row == self.castling.row): #if the king was selected before
+            cacheGame()
             if(self.castling.column > self.column): #if rook is to the left
-                self.move(self.column + 3, self.row)
-                self.castling.move(self.column - 1, self.row)
+                self.column = self.column + 3
+                self.castling.column = self.column -1
 
             else: #if rook is to the right
-                self.move(self.column - 2, self.row)
-                self.castling.move(self.column + 1, self.row)
-            
+                self.column = self.column -2 
+                self.castling.column = self.column + 1
+            self.draw()
+            self.castling.draw()
             self.castling = None
             changeTurn() #change turn
             return
@@ -339,62 +347,93 @@ def newGame():
         #add everything else
         pieceList.append(pieceOrder[i](i, 7, "black"))
         pieceList.append(pieceOrder[i](i, 0, "white"))
+    
+    cacheGame() #first state of the cache, somewhat useless but necessary to keep behaviour consistant
     drawPieces()
 
-def loadGame(): #save the game function
+#load cache from disk into memory
+def loadCache():
+    gameCache.clear() #delete everything else
     file = filedialog.askopenfile(defaultextension=".pychess")
 
     if file is None:
+        tkinter.messagebox.showerror("No file chosen")
         return
 
     lines = file.readlines()
+    file.close()
 
-    if(lines[0] != "pychess-standard-file-format-version-1\n"):
+    if(lines.pop(0) != "pychess-standard-file-format-version-2\n"):
         tkinter.messagebox.showerror("Invalid file format", "the file you are trying to load is not a pychess file")
-        file.close()
         return
+
+    newCache = ""
+    for line in lines:
+        newCache = newCache + line
+
+    #print(newCache)
+    gameCache.append(newCache)
+
+#write last state of the cache to disk
+def writeCache():
+    file = filedialog.asksaveasfile(mode='w', defaultextension=".pychess")
+    if file is None:
+        tkinter.messagebox.showerror("No name entered")
+        return
+
+    #std way of saving
+    file.write("pychess-standard-file-format-version-2\n")
+
+    #write the last cache
+    file.write(gameCache[-1])
+    file.close()
+
+#save the current state of the game in the memory
+def cacheGame():
+    newCache = ""
+    for piece in pieceList:
+        newCache = newCache + piece.type + " " + str(piece.column) + " " + str(piece.row) + " " + piece.side + "\n"
+    newCache = newCache + "turn " + turn + " " + oppositeTurn + "\n" #turn
+    newCache = newCache + "game " + str(game) #is the game still going on or did somebody win?
+    gameCache.append(newCache)
+
+#restore game from last state
+def restoreCache():
+    if(len(gameCache) < 1):
+        return
+
+    cache = gameCache.pop()
+    cache = cache.split("\n")
 
     resetGame()
 
-    for line in lines[1:]:
+    for line in cache:
         temp = line.split()
         classes = {"pawn": Pawn, "rook": Rook, "knight": Knight, "bishop": Bishop, "queen": Queen,"king": King}
-        
-        if(temp[0] == "turn"):
+    
+        if temp[0] in classes: #create instances from name
+            pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
+        elif(temp[0] == "turn"):
             global turn, oppositeTurn
             turn = temp[1]
             oppositeTurn = temp[2]
+        elif temp[0] == "game":
+            global game
+            game = bool(temp[0])
         elif(temp[0] == "#"):
             #ignore comments, note that the marker needs to be separated by a space
             pass
-        elif temp[0] in classes: #create instances from name
-            pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
         else:
             tkinter.messagebox.showerror("Invalid data", "the file you are trying to load contains invalid data")
-            resetGame()
             return
-    
     drawPieces()
-    file.close()
 
-def saveGame(): #load a game function
-    file = filedialog.asksaveasfile(mode='w', defaultextension=".pychess")
-    if file is None: # asksaveasfile return `None` if dialog closed with "cancel".
-        return
+def loadGame():
+    loadCache()
+    restoreCache()
 
-    file.write("pychess-standard-file-format-version-1\n")
-
-    for piece in pieceList:
-        file.write(piece.type + " " + str(piece.column) + " " + str(piece.row) + " "+ piece.side +"\n")
-    file.write("turn " + turn + " " + oppositeTurn)
-
-    file.close()
-
-def undo():
-    print("undo")
-
-def redo():
-    print("redo")
+def printCache():
+    print(gameCache[-1])
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
@@ -515,15 +554,19 @@ menubar = tkinter.Menu(master) #create menu
 filemenu = tkinter.Menu(menubar, tearoff=0)
 filemenu.add_command(label="New Game", command=newGame)
 filemenu.add_command(label="Open Game", command=loadGame)
-filemenu.add_command(label="Save Game", command=saveGame)
+filemenu.add_command(label="Save Game", command=writeCache)
 filemenu.add_separator()
 filemenu.add_command(label="Exit", command=master.quit)
 menubar.add_cascade(label="File", menu=filemenu)
 
 editmenu = tkinter.Menu(menubar, tearoff=0)
-editmenu.add_command(label="Undo", command=undo)
-editmenu.add_command(label="Redo", command=redo)
+editmenu.add_command(label="Undo", command=restoreCache)
 menubar.add_cascade(label="Edit", menu=editmenu)
+
+if(debug == True):
+    debugmenu = tkinter.Menu(menubar, tearoff=0)
+    debugmenu.add_command(label="print cache", command=printCache)
+    menubar.add_cascade(label="Debug", menu=debugmenu)
 
 master.config(menu=menubar) #display menu
 
