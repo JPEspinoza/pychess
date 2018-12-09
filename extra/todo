@@ -1,0 +1,7 @@
+CENTRAL update:
+-add virtual board with easy check
+-centralize piece behaviour
+-refactor main.py into multiple scripts
+
+long term:
+-artificial intelligence

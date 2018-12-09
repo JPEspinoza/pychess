@@ -2,44 +2,7 @@ import tkinter
 from tkinter import filedialog, messagebox, Tk, Menu
 from PIL import Image, ImageTk, ImageOps
 
-###variables
-master = Tk()
-
-size = 800
-divisions = 8
-partition = size / divisions
-
-pieceList = []
-selectedPiece = None #piece that drew last
-tileList = [] #list of tiles the last piece drew
-
-tempTile = None #marked tile when nothing clicked
-
-game = True #did somebody lose?
-
-gameCache = [] #keep state of turns in memory
-
-turn = "white"
-oppositeTurn = "black"
-
-debug = True
-
-"""
-colorPallete = {
-    "bg": "peach puff",
-    "tiles": "coral",
-    "temp": "red",
-    "mark": "yellow",
-    "attack": "red"
-}
-"""
-colorPallete = {
-    "bg": "dark turquoise",
-    "tile": "steel blue",
-    "temp": "purple",
-    "mark": "lawn green",
-    "attack": "?"
-}
+import var
 
 ###classes
 class Piece:
@@ -52,12 +15,12 @@ class Piece:
         self.type = piece
         self.tilesToDraw = []
 
-        self.map = [[None for row in range(divisions)] for column in range(divisions)]
+        self.map = [[None for row in range(var.divisions)] for column in range(var.divisions)]
 
     def loadSprite(self, piece):
         temp = Image.open("sprites/" + piece + "-" + self.side + ".png")
-        offset = partition / 10
-        temp.thumbnail((partition-offset,partition- offset))
+        offset = var.partition / 10
+        temp.thumbnail((var.partition-offset,var.partition- offset))
         self.sprite = ImageTk.PhotoImage(temp)
 
     #run at the begining of every turn
@@ -68,8 +31,8 @@ class Piece:
     def draw(self):
         #draw itself
         canvas.delete(self.tkobject)
-        x = partition * self.column + partition / 2
-        y = partition * self.row + partition/ 2
+        x = var.partition * self.column + var.partition / 2
+        y = var.partition * self.row + var.partition/ 2
         self.tkobject = canvas.create_image(x, y, image=self.sprite)
 
     def move(self, column, row):
@@ -89,10 +52,10 @@ class Piece:
     def delete(self):
         #remove reference
         index = None
-        for i in range(len(pieceList)):
-            if pieceList[i].tkobject == self.tkobject:
+        for i in range(len(var.pieceList)):
+            if var.pieceList[i].tkobject == self.tkobject:
                 index = i
-        pieceList.pop(index)
+        var.pieceList.pop(index)
         #remove drawing
         canvas.delete(self.tkobject)
     
@@ -124,19 +87,19 @@ class Piece:
         else:
             return False
 
-    def mapTile(self, column, row, color = colorPallete["mark"]): #mark a tile as possible to move
+    def mapTile(self, column, row, color = var.colorPallete["mark"]): #mark a tile as possible to move
         self.tilesToDraw.append((column, row, color))
         self.map[column][row] = (column, row, color)
 
     def drawTiles(self): #draw the tiles where movement is possible
         for tile in self.tilesToDraw:
-            x = partition * tile[0]
-            y = partition * tile[1]
+            x = var.partition * tile[0]
+            y = var.partition * tile[1]
 
-            tkobject = canvas.create_rectangle(x, y, x+partition, y+partition, fill=tile[2])
+            tkobject = canvas.create_rectangle(x, y, x+var.partition, y+var.partition, fill=tile[2])
             tile = Tile(tile[0], tile[1], tkobject)
 
-            tileList.append(tile)
+            var.tileList.append(tile)
         self.tilesToDraw.clear()
 
 class King(Piece):
@@ -269,7 +232,7 @@ class Pawn(Piece):
 
         #let change type when getting to the other side
         if(self.direction == 1 and self.row == 7) or (self.direction == -1 and self.row == 0):
-            pieceList.append(Queen(self.column, self.row, self.side)) #just turns into a queen, not going to add an extra ui for choosing the piece...
+            var.pieceList.append(Queen(self.column, self.row, self.side)) #just turns into a queen, not going to add an extra ui for choosing the piece...
             Piece.delete(self)
 
 class Knight(Piece): #caballo
@@ -322,14 +285,14 @@ class Tile:
 def resetGame():
     #this ones are redundant but want to make sure nothing gets away when restarting
     global selectedPiece, tempTile
-    canvas.delete(tempTile)
+    canvas.delete(var.tempTile)
     tempTile = None
     selectedPiece = None
 
     deleteTiles()
-    for piece in pieceList:
+    for piece in var.pieceList:
         canvas.delete(piece.tkobject)
-    pieceList.clear()
+    var.pieceList.clear()
 
 def newGame():
     #create pieces
@@ -342,18 +305,18 @@ def newGame():
     pieceOrder = (Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook) #helper
     for i in range(0,8):
         #add pawns
-        pieceList.append(Pawn(i,6, "black"))
-        pieceList.append(Pawn(i,1, "white"))
+        var.pieceList.append(Pawn(i,6, "black"))
+        var.pieceList.append(Pawn(i,1, "white"))
         #add everything else
-        pieceList.append(pieceOrder[i](i, 7, "black"))
-        pieceList.append(pieceOrder[i](i, 0, "white"))
+        var.pieceList.append(pieceOrder[i](i, 7, "black"))
+        var.pieceList.append(pieceOrder[i](i, 0, "white"))
     
     cacheGame() #first state of the cache, somewhat useless but necessary to keep behaviour consistant
     drawPieces()
 
 #load cache from disk into memory
 def loadCache():
-    gameCache.clear() #delete everything else
+    var.gameCache.clear() #delete everything else
     file = filedialog.askopenfile(defaultextension=".pychess")
 
     if file is None:
@@ -372,7 +335,7 @@ def loadCache():
         newCache = newCache + line
 
     #print(newCache)
-    gameCache.append(newCache)
+    var.gameCache.append(newCache)
 
 #write last state of the cache to disk
 def writeCache():
@@ -385,24 +348,24 @@ def writeCache():
     file.write("pychess-standard-file-format-version-2\n")
 
     #write the last cache
-    file.write(gameCache[-1])
+    file.write(var.gameCache[-1])
     file.close()
 
 #save the current state of the game in the memory
 def cacheGame():
     newCache = ""
-    for piece in pieceList:
+    for piece in var.pieceList:
         newCache = newCache + piece.type + " " + str(piece.column) + " " + str(piece.row) + " " + piece.side + "\n"
     newCache = newCache + "turn " + turn + " " + oppositeTurn + "\n" #turn
-    newCache = newCache + "game " + str(game) #is the game still going on or did somebody win?
-    gameCache.append(newCache)
+    newCache = newCache + "game " + str(var.game) #is the game still going on or did somebody win?
+    var.gameCache.append(newCache)
 
 #restore game from last state
 def restoreCache():
-    if(len(gameCache) < 1):
+    if(len(var.gameCache) < 1):
         return
 
-    cache = gameCache.pop()
+    cache = var.gameCache.pop()
     cache = cache.split("\n")
 
     resetGame()
@@ -412,7 +375,7 @@ def restoreCache():
         classes = {"pawn": Pawn, "rook": Rook, "knight": Knight, "bishop": Bishop, "queen": Queen,"king": King}
     
         if temp[0] in classes: #create instances from name
-            pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
+            var.pieceList.append(classes[temp[0]](int(temp[1]), int(temp[2]), temp[3]))
         elif(temp[0] == "turn"):
             global turn, oppositeTurn
             turn = temp[1]
@@ -433,30 +396,30 @@ def loadGame():
     restoreCache()
 
 def printCache():
-    print(gameCache[-1])
+    print(var.gameCache[-1])
 
 #given coordinates returns column and row
 def clickToPosition(x,y):
     column, row = -1, -1
-    for i in range(divisions): #column
-        if(x >= partition * i and x <= partition * (i + 1)):
+    for i in range(var.divisions): #column
+        if(x >= var.partition * i and x <= var.partition * (i + 1)):
             column = i
-    for i in range(divisions): #row
-        if(y >= partition * i and y <= partition * (i+1)):
+    for i in range(var.divisions): #row
+        if(y >= var.partition * i and y <= var.partition * (i+1)):
             row = i
 
     return column, row
 
 #given a position returns a tile or False
 def positionToTile(column, row):
-    for tile in tileList:
+    for tile in var.tileList:
         if(tile.column == column and tile.row == row):
             return tile
     return False
 
 #given a position and side returns the piece or False
 def positionToPiece(column, row, side = None):
-    for piece in pieceList:
+    for piece in var.pieceList:
         if(piece.column == column and piece.row == row):
             if(side != None):
                 if(piece.side == side): return piece
@@ -464,18 +427,18 @@ def positionToPiece(column, row, side = None):
     return False
 
 def updatePieces():
-    for piece in pieceList:
+    for piece in var.pieceList:
         piece.update()
 
 def drawPieces():
-    for piece in pieceList:
+    for piece in var.pieceList:
         piece.draw()
 
 #delete tiles marked by any piece
 def deleteTiles():
-    for tile in tileList:
+    for tile in var.tileList:
         canvas.delete(tile.tkobject)
-    tileList.clear()
+    var.tileList.clear()
 
 #change the turn
 def changeTurn():
@@ -486,7 +449,7 @@ def changeTurn():
     whiteKing = False
     blackKing = False
 
-    for piece in pieceList:
+    for piece in var.pieceList:
         if(piece.type == "king"):
             if(piece.side == "white"):
                 whiteKing = True
@@ -503,14 +466,13 @@ def drawTempTile(column, row):
     global tempTile
     canvas.delete(tempTile)
 
-    x = column * partition
-    y = row * partition
+    x = column * var.partition
+    y = row * var.partition
 
-    tempTile = canvas.create_rectangle(x, y, x+partition, y+partition, fill=colorPallete["temp"])
+    tempTile = canvas.create_rectangle(x, y, x+var.partition, y+var.partition, fill=var.colorPallete["temp"])
 
 def click(event): #core game logic
-    global game
-    if(game != True):
+    if(var.game != True):
         tkinter.messagebox.showinfo("Winner", "Winner: " + str(game))
         return
 
@@ -546,42 +508,42 @@ def click(event): #core game logic
 
 ###init
 ##TK prepare
-canvas = tkinter.Canvas(master, width=size, height=size, bg=colorPallete["bg"])
+canvas = tkinter.Canvas(var.master, width=var.size, height=var.size, bg=var.colorPallete["bg"])
 canvas.pack()
 
 #create menu
-menubar = tkinter.Menu(master) #create menu
+menubar = tkinter.Menu(var.master) #create menu
 filemenu = tkinter.Menu(menubar, tearoff=0)
 filemenu.add_command(label="New Game", command=newGame)
 filemenu.add_command(label="Open Game", command=loadGame)
 filemenu.add_command(label="Save Game", command=writeCache)
 filemenu.add_separator()
-filemenu.add_command(label="Exit", command=master.quit)
+filemenu.add_command(label="Exit", command=var.master.quit)
 menubar.add_cascade(label="File", menu=filemenu)
 
 editmenu = tkinter.Menu(menubar, tearoff=0)
 editmenu.add_command(label="Undo", command=restoreCache)
 menubar.add_cascade(label="Edit", menu=editmenu)
 
-if(debug == True):
+if(var.debug == True):
     debugmenu = tkinter.Menu(menubar, tearoff=0)
     debugmenu.add_command(label="print cache", command=printCache)
     menubar.add_cascade(label="Debug", menu=debugmenu)
 
-master.config(menu=menubar) #display menu
+var.master.config(menu=menubar) #display menu
 
 #make clicking run the "click" function that handles all the core logic
 canvas.bind("<Button-1>", click)
 
 #draw the board
-for i in range(divisions): #create the lines
-    canvas.create_line(0, partition * i, size, partition * i)
-    canvas.create_line(partition * i, 0, partition*i, size)
+for i in range(var.divisions): #create the lines
+    canvas.create_line(0, var.partition * i, var.size, var.partition * i)
+    canvas.create_line(var.partition * i, 0, var.partition*i, var.size)
 
-for row in range(0, divisions, 2): #color the tiles
-    for column in range(0, divisions, 2):
-        canvas.create_rectangle(column * partition, row* partition, (column+1)*partition, (row+1)*partition, fill=colorPallete["tile"])
-        canvas.create_rectangle((column+1) * partition, (row+1)* partition, (column+2)*partition, (row+2)*partition, fill=colorPallete["tile"])
+for row in range(0, var.divisions, 2): #color the tiles
+    for column in range(0, var.divisions, 2):
+        canvas.create_rectangle(column * var.partition, row* var.partition, (column+1)*var.partition, (row+1)*var.partition, fill=var.colorPallete["tile"])
+        canvas.create_rectangle((column+1) * var.partition, (row+1)* var.partition, (column+2)*var.partition, (row+2)*var.partition, fill=var.colorPallete["tile"])
 
 newGame()
 
