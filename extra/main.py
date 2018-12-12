@@ -1,3 +1,9 @@
+"""
+
+OLD IMPLEMENTATION OF PYCHESS, DEPRECATED AND WONT BE UPDATED ANYMORE
+
+"""
+
 import tkinter
 from tkinter import filedialog, messagebox, Tk, Menu
 from PIL import Image, ImageTk, ImageOps

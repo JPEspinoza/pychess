@@ -3,5 +3,8 @@ CENTRAL update:
 -centralize piece behaviour
 -refactor main.py into multiple scripts
 
+the original version kept all the pieces in a single list and the attacks inside each piece
+the new version will centralize the attacks into a matrix
+
 long term:
 -artificial intelligence
